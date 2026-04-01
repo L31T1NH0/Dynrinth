@@ -142,10 +142,10 @@ function PillToggle<T extends string>({
           key={o.id}
           onClick={() => onToggle(o.id)}
           className={[
-            'h-7 px-3 rounded-md text-[11px] border transition-all duration-150 font-medium',
+            'h-7 px-3 rounded-md text-[11px] transition-all duration-150 font-medium',
             active === o.id
-              ? 'bg-brand-glow border-brand text-brand'
-              : 'bg-bg-surface border-line-DEFAULT text-ink-secondary hover:border-line-strong hover:text-ink-primary',
+              ? 'bg-brand-glow border border-brand text-brand'
+              : 'bg-bg-surface text-ink-secondary hover:text-ink-primary hover:bg-bg-hover',
           ].join(' ')}
         >
           {o.label}
@@ -342,7 +342,7 @@ export default function Page() {
           {/* Content type tabs */}
           <div className="px-4 pt-3 pb-0 border-b border-line-subtle flex-shrink-0">
             <div className="flex overflow-x-auto scrollbar-none">
-              {CONTENT_TYPES.map(t => (
+              {CONTENT_TYPES.filter(t => filters.source === 'modrinth' || t.id !== 'plugin').map(t => (
                 <button
                   key={t.id}
                   onClick={() => setContentType(t.id)}
@@ -366,7 +366,7 @@ export default function Page() {
             <select
               value={filters.source}
               onChange={e => setSource(e.target.value as Source)}
-              className="h-7 px-2.5 rounded-md border border-line-DEFAULT bg-bg-surface text-ink-primary text-[11px] font-mono cursor-pointer transition-colors hover:border-line-strong focus:border-brand focus:shadow-[0_0_0_2px_rgba(27,217,106,0.15)] w-32 flex-shrink-0"
+              className="h-7 px-2.5 rounded-md bg-bg-surface text-ink-primary text-[11px] font-mono cursor-pointer transition-colors focus:ring-2 focus:ring-brand focus:outline-none w-32 flex-shrink-0"
             >
               <option value="modrinth">Modrinth</option>
               <option value="curseforge">CurseForge</option>
@@ -376,7 +376,7 @@ export default function Page() {
             <select
               value={filters.version}
               onChange={e => setVersion(e.target.value)}
-              className="h-7 px-2.5 rounded-md border border-line-DEFAULT bg-bg-surface text-ink-primary text-[11px] font-mono cursor-pointer transition-colors hover:border-line-strong focus:border-brand focus:shadow-[0_0_0_2px_rgba(27,217,106,0.15)] w-28 flex-shrink-0"
+              className="h-7 px-2.5 rounded-md bg-bg-surface text-ink-primary text-[11px] font-mono cursor-pointer transition-colors focus:ring-2 focus:ring-brand focus:outline-none w-28 flex-shrink-0"
             >
               {!versions.length && <option value="">...</option>}
               {versions.map(v => <option key={v} value={v}>{v}</option>)}
@@ -418,7 +418,7 @@ export default function Page() {
                   onChange={e => setSearchQuery(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder={`Buscar ${currentTypeInfo.label.toLowerCase()}...`}
-                  className="w-full h-7 pl-2.5 pr-7 rounded-md border border-line-DEFAULT bg-bg-surface text-ink-primary text-[11px] placeholder:text-ink-tertiary transition-colors hover:border-line-strong focus:border-brand focus:shadow-[0_0_0_2px_rgba(27,217,106,0.15)] outline-none"
+                  className="w-full h-7 pl-2.5 pr-7 rounded-md bg-bg-surface text-ink-primary text-[11px] placeholder:text-ink-tertiary transition-colors focus:ring-2 focus:ring-brand focus:outline-none"
                 />
                 {searchQuery && (
                   <button
@@ -526,12 +526,12 @@ export default function Page() {
                         disabled={queued}
                         onClick={() => { queue.add(item.project_id, item.title, item.icon_url, filters); setMobilePanel('queue'); }}
                         className={[
-                          'w-8 h-8 rounded-lg border text-xs flex items-center justify-center flex-shrink-0 transition-all duration-150',
+                          'w-8 h-8 rounded-lg text-xs flex items-center justify-center flex-shrink-0 transition-all duration-150',
                           queued && !isActive
-                            ? 'border-brand/40 bg-brand-glow text-brand cursor-default'
+                            ? 'bg-brand-glow text-brand cursor-default'
                             : isActive
-                            ? 'border-line-DEFAULT bg-bg-surface text-ink-secondary cursor-wait'
-                            : 'border-line-DEFAULT bg-bg-surface text-ink-secondary hover:border-brand hover:text-brand hover:bg-brand-glow active:scale-95',
+                            ? 'bg-bg-surface text-ink-secondary cursor-wait'
+                            : 'bg-bg-surface text-ink-secondary hover:text-brand hover:bg-brand-glow active:scale-95',
                         ].join(' ')}
                         title={queued ? 'Na fila' : 'Adicionar à fila'}
                       >
@@ -551,7 +551,7 @@ export default function Page() {
                     <button
                       onClick={loadMore}
                       disabled={isLoadingMore}
-                      className="h-8 px-5 rounded-lg border border-line-DEFAULT bg-bg-surface text-ink-secondary text-xs font-medium flex items-center gap-2 transition-all hover:border-line-strong hover:text-ink-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="h-8 px-5 rounded-lg bg-bg-surface text-ink-secondary text-xs font-medium flex items-center gap-2 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isLoadingMore ? <><Spinner size={11} /> Carregando...</> : 'Carregar mais'}
                     </button>
