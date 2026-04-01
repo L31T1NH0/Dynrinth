@@ -102,7 +102,19 @@ export async function searchProjects(
 
   const data = await r.json();
   return {
-    hits:      data.hits       ?? [],
+    hits: (data.hits ?? []).map((hit: {
+      project_id: string; title: string; description: string;
+      icon_url: string | null; downloads: number; categories: string[];
+      slug: string; project_type: string;
+    }) => ({
+      project_id:  hit.project_id,
+      title:       hit.title,
+      description: hit.description,
+      icon_url:    hit.icon_url,
+      downloads:   hit.downloads,
+      categories:  hit.categories,
+      page_url:    `https://modrinth.com/${hit.project_type}/${hit.slug}`,
+    })),
     totalHits: data.total_hits ?? 0,
   };
 }

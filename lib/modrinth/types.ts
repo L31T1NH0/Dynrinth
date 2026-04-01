@@ -33,6 +33,7 @@ export interface SearchResult {
   icon_url:    string | null;
   downloads:   number;
   categories:  string[];
+  page_url?:   string;
 }
 
 /** A downloadable file attached to a project version. */

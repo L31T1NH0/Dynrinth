@@ -498,7 +498,17 @@ export default function Page() {
                     >
                       <ItemIcon url={item.icon_url} title={item.title} />
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-semibold truncate leading-tight">{item.title}</div>
+                        {item.page_url ? (
+                          <a
+                            href={item.page_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[13px] font-semibold truncate leading-tight hover:underline hover:text-brand transition-colors"
+                            onClick={e => e.stopPropagation()}
+                          >{item.title}</a>
+                        ) : (
+                          <div className="text-[13px] font-semibold truncate leading-tight">{item.title}</div>
+                        )}
                         <div className="text-xs text-ink-secondary mt-0.5 truncate leading-snug">{item.description}</div>
                         <div className="flex gap-1.5 mt-1.5 flex-wrap">
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-glow text-brand border border-brand/30 font-mono">

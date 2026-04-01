@@ -37,6 +37,7 @@ export interface CfMod {
   categories:         CfCategory[];
   latestFilesIndexes: CfFileIndex[];
   latestFiles:        CfFile[];
+  links?:             { websiteUrl?: string };
 }
 
 export interface CfSearchResponse {

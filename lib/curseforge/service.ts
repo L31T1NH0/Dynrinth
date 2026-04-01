@@ -52,6 +52,7 @@ function mapCfModToSearchResult(mod: CfMod) {
     icon_url:    mod.logo?.thumbnailUrl ?? null,
     downloads:   mod.downloadCount,
     categories:  mod.categories.map(c => c.name),
+    page_url:    mod.links?.websiteUrl,
   };
 }
 
