@@ -1,7 +1,12 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
-import { resolveProjectVersion, fetchProjectInfo } from '@/lib/modrinth/service';
+import * as modrinthService from '@/lib/modrinth/service';
+import * as curseforgeService from '@/lib/curseforge/service';
 import { downloadAsZip, type DownloadItem } from '@/lib/download';
 import type { Filters, ResolvedVersion } from '@/lib/modrinth/types';
+
+function getService(filters: Filters) {
+  return filters.source === 'curseforge' ? curseforgeService : modrinthService;
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -118,7 +123,7 @@ function reducer(state: QueueState, action: QueueAction): QueueState {
 
 // ─── Persistence ──────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = 'modrinth-queue-v3';
+const STORAGE_KEY = 'modrinth-queue-v4';
 
 function persist(entries: QueueEntry[]): void {
   try {
@@ -190,7 +195,8 @@ export function useQueue(): UseQueueReturn {
       resolvingRef.current.add(entry.id);
       dispatch({ type: 'SET_STATUS', id: entry.id, status: 'resolving' });
 
-      resolveProjectVersion(entry.id, entry.filters)
+      const service = getService(entry.filters);
+      service.resolveProjectVersion(entry.id, entry.filters)
         .then(async result => {
           if (!result.ok) {
             dispatch({ type: 'ERROR', id: entry.id, reason: result.reason });
@@ -206,7 +212,7 @@ export function useQueue(): UseQueueReturn {
           );
           for (const dep of required) {
             try {
-              const info = await fetchProjectInfo(dep.projectId);
+              const info = await service.fetchProjectInfo(dep.projectId);
               dispatch({
                 type: 'ADD',
                 entry: {
