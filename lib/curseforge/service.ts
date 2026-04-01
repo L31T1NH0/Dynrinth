@@ -75,7 +75,7 @@ export async function fetchGameVersions(): Promise<string[]> {
   if (!r.ok) throw new Error(`CF fetchGameVersions: HTTP ${r.status}`);
   const data: CfVersionsResponse = await r.json();
   return data.data
-    .filter(v => v.versionType === 1)
+    .filter(v => /^\d+\.\d+(\.\d+)?$/.test(v.versionString))
     .map(v => v.versionString);
 }
 
@@ -90,10 +90,12 @@ export async function searchProjects(
   signal?: AbortSignal,
 ): Promise<SearchPage> {
   const params = new URLSearchParams({
-    gameId:   String(GAME_ID),
-    classId:  String(CLASS_IDS[filters.contentType]),
-    index:    String(offset),
-    pageSize: String(PAGE_SIZE),
+    gameId:     String(GAME_ID),
+    classId:    String(CLASS_IDS[filters.contentType]),
+    index:      String(offset),
+    pageSize:   String(PAGE_SIZE),
+    sortField:  '2', // Popularity
+    sortOrder:  'desc',
   });
 
   if (filters.version) params.set('gameVersion', filters.version);

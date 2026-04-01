@@ -50,8 +50,11 @@ export interface CfSearchResponse {
 }
 
 export interface CfMinecraftVersion {
-  versionString: string;
-  versionType:   number; // 1 = release
+  versionString:         string;
+  gameVersionTypeId:     number;
+  gameVersionStatus:     number;
+  gameVersionTypeStatus: number;
+  approved:              boolean;
 }
 
 export interface CfVersionsResponse {
