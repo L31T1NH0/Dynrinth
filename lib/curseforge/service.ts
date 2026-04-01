@@ -55,9 +55,13 @@ function mapCfModToSearchResult(mod: CfMod) {
   };
 }
 
+function cfDownloadProxy(url: string): string {
+  return `/api/curseforge/download?url=${encodeURIComponent(url)}`;
+}
+
 function mapCfFileToModFile(file: CfFile): ModFile {
   return {
-    url:      file.downloadUrl!,
+    url:      cfDownloadProxy(file.downloadUrl!),
     filename: file.fileName,
     primary:  true,
     size:     file.fileLength,
