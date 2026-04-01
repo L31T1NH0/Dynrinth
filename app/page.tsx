@@ -387,7 +387,7 @@ export default function Page() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── Left panel ─────────────────────────────────────────────────── */}
-        <div className={`${mobilePanel === 'queue' ? 'hidden' : 'flex'} md:flex flex-1 flex-col border-r border-line-subtle overflow-hidden min-w-0`}>
+        <div className={`${mobilePanel === 'queue' ? 'hidden' : 'flex'} md:flex flex-1 flex-col overflow-hidden min-w-0`}>
 
           {/* Version + loader row */}
           <div className="flex items-center gap-3 px-5 py-2 border-b border-line-subtle shrink-0 flex-wrap">
@@ -537,7 +537,7 @@ export default function Page() {
                   return (
                     <div
                       key={item.project_id}
-                      className={`flex items-start gap-3 px-4 py-3 border-b border-line-subtle hover:bg-bg-hover transition-colors cursor-default${isNew ? ' animate-fadeIn' : ''}`}
+                      className={`flex items-start gap-3 px-4 py-3.5 border-b border-line hover:bg-bg-surface/60 transition-all duration-150 cursor-default${isNew ? ' animate-fadeIn' : ''}`}
                       style={isNew ? { animationDelay: `${(i % PAGE_SIZE) * 20}ms` } : undefined}
                     >
                       <ItemIcon url={item.icon_url} title={item.title} />
@@ -570,12 +570,12 @@ export default function Page() {
                         disabled={queued}
                         onClick={() => { queue.add(item.project_id, item.title, item.icon_url, filters); setMobilePanel('queue'); }}
                         className={[
-                          'w-8 h-8 rounded-lg text-xs flex items-center justify-center shrink-0 transition-all duration-150 leading-none self-center',
+                          'no-ring w-8 h-8 rounded-lg text-xs flex items-center justify-center shrink-0 transition-all duration-150 leading-none self-center',
                           queued && !isActive
                             ? 'bg-brand-glow text-brand cursor-default'
                             : isActive
-                            ? 'bg-bg-surface text-ink-secondary cursor-wait'
-                            : 'bg-bg-surface text-ink-secondary hover:text-brand hover:bg-brand-glow active:scale-95',
+                            ? 'bg-bg-card text-ink-tertiary cursor-wait'
+                            : 'bg-bg-card text-ink-secondary hover:text-brand hover:bg-brand-glow active:scale-95',
                         ].join(' ')}
                         title={queued ? 'In queue' : 'Add to queue'}
                       >
@@ -605,6 +605,9 @@ export default function Page() {
             )}
           </div>
         </div>
+
+        {/* ── Divider ────────────────────────────────────────────────────── */}
+        <div className="hidden md:block w-px bg-line-subtle self-stretch shrink-0" />
 
         {/* ── Right panel (queue) ─────────────────────────────────────────── */}
         <div className={`${mobilePanel === 'search' ? 'hidden' : 'flex'} md:flex w-full md:w-[290px] flex-col shrink-0`}>
@@ -645,7 +648,7 @@ export default function Page() {
                 return (
                   <div
                     key={entry.id}
-                    className="flex items-center gap-2.5 px-4 py-2.5 border-b border-line-subtle hover:bg-bg-hover transition-colors animate-slideIn"
+                    className="flex items-center gap-2.5 px-4 py-3 border-b border-line hover:bg-bg-hover transition-all duration-150 animate-slideIn"
                     style={{ animationDelay: `${i * 15}ms` }}
                   >
                     <QueueStatusDot status={entry.status} />
