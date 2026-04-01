@@ -1,5 +1,6 @@
 // ─── Filter domain ────────────────────────────────────────────────────────────
 
+export type Source       = 'modrinth' | 'curseforge';
 export type Loader       = 'fabric' | 'forge';
 export type ShaderLoader = 'iris' | 'optifine';
 export type PluginLoader = 'bukkit' | 'spigot' | 'paper';
@@ -14,6 +15,7 @@ export type ContentType  = 'mod' | 'plugin' | 'datapack' | 'resourcepack' | 'sha
  * based on `contentType` (e.g. `loader` is ignored unless contentType==='mod').
  */
 export interface Filters {
+  source:       Source;
   version:      string;
   contentType:  ContentType;
   loader:       Loader;              // applied when contentType === 'mod'

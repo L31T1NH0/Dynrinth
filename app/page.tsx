@@ -1,20 +1,20 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react';
-import {
-  fetchGameVersions,
-  searchProjects,
-  PAGE_SIZE,
-} from '@/lib/modrinth/service';
+import * as modrinthService from '@/lib/modrinth/service';
+import * as curseforgeService from '@/lib/curseforge/service';
 import type {
   Filters,
   Loader,
   ShaderLoader,
   PluginLoader,
   ContentType,
+  Source,
   SearchResult,
 } from '@/lib/modrinth/types';
 import { useQueue, type QueueItemStatus } from '@/hooks/useQueue';
+
+const PAGE_SIZE = modrinthService.PAGE_SIZE;
 
 // ─── UI configuration ─────────────────────────────────────────────────────────
 
@@ -43,6 +43,7 @@ const CONTENT_TYPES: { id: ContentType; label: string; usesLoader: boolean }[] =
 ];
 
 const DEFAULT_FILTERS: Filters = {
+  source:       'modrinth',
   version:      '',
   contentType:  'mod',
   loader:       'fabric',
@@ -159,9 +160,7 @@ function PillToggle<T extends string>({
 export default function Page() {
 
   // ── MC version list ───────────────────────────────────────────────────────
-  const [versions,     setVersions]     = useState<string[]>([]);
-  const [versionCount, setVersionCount] = useState<number | null>(null);
-  const [versionError, setVersionError] = useState(false);
+  const [versions, setVersions] = useState<string[]>([]);
 
   // ── Active filters ────────────────────────────────────────────────────────
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
@@ -182,17 +181,20 @@ export default function Page() {
   // ── Queue ─────────────────────────────────────────────────────────────────
   const queue = useQueue();
 
-  // ── Load MC versions ──────────────────────────────────────────────────────
+  // ── Load MC versions (re-fetched when source changes) ────────────────────
 
   useEffect(() => {
-    fetchGameVersions()
+    const service = filters.source === 'curseforge' ? curseforgeService : modrinthService;
+    setVersions([]);
+    setFilters(prev => ({ ...prev, version: '' }));
+    service.fetchGameVersions()
       .then(releases => {
         setVersions(releases);
-        setVersionCount(releases.length);
         if (releases.length) setFilters(prev => ({ ...prev, version: releases[0] }));
       })
-      .catch(() => setVersionError(true));
-  }, []);
+      .catch(() => { /* version list unavailable — search will stay paused */ });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.source]);
 
   // ── Core search ───────────────────────────────────────────────────────────
 
@@ -217,8 +219,15 @@ export default function Page() {
     }
 
     try {
-      const signal = append ? undefined : abortRef.current?.signal;
-      const page   = await searchProjects(query, snapshot, startOffset, signal);
+      if (snapshot.source === 'curseforge' && !process.env.NEXT_PUBLIC_CURSEFORGE_API_KEY) {
+        setHasError(true);
+        setIsLoading(false);
+        return;
+      }
+
+      const service = snapshot.source === 'curseforge' ? curseforgeService : modrinthService;
+      const signal  = append ? undefined : abortRef.current?.signal;
+      const page    = await service.searchProjects(query, snapshot, startOffset, signal);
 
       if (append) {
         setResults(prev => [...prev, ...page.hits]);
@@ -245,7 +254,7 @@ export default function Page() {
     setSearchQuery('');
     runSearch('', filters, 0, false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.version, filters.contentType, filters.loader, filters.shaderLoader, filters.pluginLoader, runSearch]);
+  }, [filters.source, filters.version, filters.contentType, filters.loader, filters.shaderLoader, filters.pluginLoader, runSearch]);
 
   // ── Search actions ────────────────────────────────────────────────────────
 
@@ -269,6 +278,10 @@ export default function Page() {
   }, [runSearch, offset]);
 
   // ── Filter setters ────────────────────────────────────────────────────────
+
+  const setSource = useCallback((s: Source) => {
+    setFilters(prev => ({ ...prev, source: s }));
+  }, []);
 
   const setVersion = useCallback((v: string) => {
     setFilters(prev => ({ ...prev, version: v }));
@@ -305,8 +318,8 @@ export default function Page() {
     [queue.entries],
   );
 
-  /** ZIP filename derived from current content type. */
-  const zipName = `modrinth-${filters.contentType}s`;
+  /** ZIP filename derived from active source and content type. */
+  const zipName = `${filters.source}-${filters.contentType}s`;
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -320,14 +333,7 @@ export default function Page() {
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8zm-3 0h2V8H8v8zm6 0h2V8h-2v8z"/>
           </svg>
         </div>
-        <span className="text-[15px] font-semibold tracking-tight">Modrinth Downloader</span>
-        <span className="ml-auto text-xs font-mono text-ink-tertiary">
-          {versionError
-            ? 'Erro ao carregar versões'
-            : versionCount === null
-            ? 'Carregando versões...'
-            : `${versionCount} versões disponíveis`}
-        </span>
+        <span className="text-[15px] font-semibold tracking-tight">dynrinth</span>
       </header>
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
@@ -358,6 +364,16 @@ export default function Page() {
 
           {/* Version + loader row */}
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-line-subtle flex-shrink-0 flex-wrap">
+
+            {/* API source */}
+            <select
+              value={filters.source}
+              onChange={e => setSource(e.target.value as Source)}
+              className="h-7 px-2.5 rounded-md border border-line-DEFAULT bg-bg-surface text-ink-primary text-[11px] font-mono cursor-pointer transition-colors hover:border-line-strong focus:border-brand focus:shadow-[0_0_0_2px_rgba(27,217,106,0.15)] w-32 flex-shrink-0"
+            >
+              <option value="modrinth">Modrinth</option>
+              <option value="curseforge">CurseForge</option>
+            </select>
 
             {/* MC version */}
             <select
