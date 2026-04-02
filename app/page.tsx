@@ -1,6 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react';
+import {
+  MagnifyingGlassIcon,
+  PlusIcon,
+  CheckIcon,
+  XMarkIcon,
+  ArrowUpTrayIcon,
+  ArrowDownTrayIcon,
+  LinkIcon,
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+  InformationCircleIcon,
+  ArchiveBoxIcon,
+  CubeIcon,
+} from '@heroicons/react/24/outline';
+import { CloudArrowDownIcon } from '@heroicons/react/24/solid';
 import * as modrinthService from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
 import type {
@@ -103,8 +118,8 @@ function ItemIcon({ url, title }: { url: string | null; title: string }) {
   const [errored, setErrored] = useState(false);
   if (!url || errored) {
     return (
-      <div className="w-10 h-10 rounded-lg bg-bg-surface border border-line-subtle flex items-center justify-center text-lg text-ink-muted shrink-0 select-none">
-        ⬡
+      <div className="w-10 h-10 rounded-lg bg-bg-surface border border-line-subtle flex items-center justify-center shrink-0 select-none">
+        <CubeIcon className="w-5 h-5 text-ink-tertiary" />
       </div>
     );
   }
@@ -429,9 +444,7 @@ export default function Page() {
         <div className="flex items-center gap-6 px-5 py-2.5">
           <div className="flex items-center gap-3">
             <div className="w-6 h-6 rounded-md bg-brand flex items-center justify-center shrink-0">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="#0a2e18">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-4h2V8h-2v8zm-3 0h2V8H8v8zm6 0h2V8h-2v8z"/>
-              </svg>
+              <CloudArrowDownIcon className="w-3.5 h-3.5 text-brand-dark" />
             </div>
             <span className="text-[14px] font-semibold tracking-tight">dynrinth</span>
           </div>
@@ -512,9 +525,7 @@ export default function Page() {
             {/* Search input */}
             <div className="flex gap-1 w-full md:ml-auto md:flex-1 md:max-w-sm">
               <div className="relative flex-1">
-                <svg className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-tertiary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-                </svg>
+                <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-secondary" />
                 <input
                   type="text"
                   value={searchQuery}
@@ -526,10 +537,10 @@ export default function Page() {
                 {searchQuery && (
                   <button
                     onClick={clearSearch}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-tertiary hover:text-ink-secondary text-xs leading-none"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-secondary hover:text-ink-primary"
                     title="Clear search"
                   >
-                    ×
+                    <XMarkIcon className="w-3 h-3" />
                   </button>
                 )}
               </div>
@@ -540,7 +551,7 @@ export default function Page() {
               >
                 {isLoading
                   ? <Spinner size={11} />
-                  : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+                  : <MagnifyingGlassIcon className="w-[11px] h-[11px]" />
                 }
               </button>
             </div>
@@ -551,7 +562,7 @@ export default function Page() {
 
             {fallbackVersion && !isLoading && (
               <div className="px-4 py-2 bg-brand-glow border-b border-brand/30 text-brand text-xs flex items-center gap-2">
-                <span>ℹ️</span>
+                <InformationCircleIcon className="w-4 h-4 shrink-0" />
                 <span>No {currentTypeInfo.label.toLowerCase()} for {filters.version}. Showing results from {fallbackVersion} instead.</span>
               </div>
             )}
@@ -572,14 +583,14 @@ export default function Page() {
 
             {!isLoading && hasError && (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-secondary text-xs">
-                <span className="text-2xl">⚠️</span>
+                <ExclamationTriangleIcon className="w-8 h-8 text-ink-primary" />
                 Error searching. Check your connection.
               </div>
             )}
 
             {!isLoading && !hasError && results.length === 0 && filters.version && (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-secondary text-xs text-center">
-                <span className="text-2xl opacity-40">🔍</span>
+                <MagnifyingGlassIcon className="w-8 h-8 text-ink-secondary opacity-50" />
                 <span>
                   No results for{' '}
                   <strong className="text-ink-primary">
@@ -653,8 +664,8 @@ export default function Page() {
                         {isActive
                           ? <Spinner size={12} />
                           : queued
-                          ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                          : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                          ? <CheckIcon className="w-3 h-3" />
+                          : <PlusIcon className="w-3 h-3" />
                         }
                       </button>
                     </div>
@@ -705,7 +716,7 @@ export default function Page() {
           <div className="flex-1 overflow-y-auto">
             {queue.entries.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-tertiary">
-                <span className="text-3xl opacity-25">📦</span>
+                <ArchiveBoxIcon className="w-8 h-8 text-ink-secondary opacity-40" />
                 <span className="text-xs text-center leading-relaxed">
                   Queue empty.<br />Add items from search.
                 </span>
@@ -770,18 +781,18 @@ export default function Page() {
                         {isError && (
                           <button
                             onClick={() => queue.retry(entry.id)}
-                            className="text-ink-tertiary hover:text-brand text-sm w-5 h-5 flex items-center justify-center rounded hover:bg-bg-hover transition-colors"
+                            className="text-ink-secondary hover:text-brand w-5 h-5 flex items-center justify-center rounded hover:bg-bg-hover transition-colors"
                             title="Try again"
                           >
-                            ↺
+                            <ArrowPathIcon className="w-3.5 h-3.5" />
                           </button>
                         )}
                         <button
                           onClick={() => queue.remove(entry.id)}
-                          className="text-ink-muted hover:text-ink-secondary text-base w-5 h-5 flex items-center justify-center rounded hover:bg-bg-hover transition-colors leading-none"
+                          className="text-ink-tertiary hover:text-ink-primary w-5 h-5 flex items-center justify-center rounded hover:bg-bg-hover transition-colors"
                           title="Remove"
                         >
-                          ×
+                          <XMarkIcon className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     )}
@@ -808,31 +819,23 @@ export default function Page() {
               <button
                 onClick={() => downloadJSON(getExportState())}
                 disabled={isRestoring}
-                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-secondary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Export mod list as JSON"
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
+                <ArrowUpTrayIcon className="w-[11px] h-[11px]" />
                 Export
               </button>
               <button
                 onClick={() => importInputRef.current?.click()}
                 disabled={isRestoring}
-                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-secondary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Import mod list from JSON"
               >
                 {isRestoring ? (
                   <><Spinner size={11} /> Restoring...</>
                 ) : (
                   <>
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                      <polyline points="7 16 12 21 17 16"/>
-                      <line x1="12" y1="21" x2="12" y2="9"/>
-                    </svg>
+                    <ArrowDownTrayIcon className="w-[11px] h-[11px]" />
                     Import
                   </>
                 )}
@@ -840,13 +843,10 @@ export default function Page() {
               <button
                 onClick={handleShare}
                 disabled={isRestoring}
-                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-secondary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Copy shareable URL"
               >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
-                </svg>
+                <LinkIcon className="w-[11px] h-[11px]" />
                 {copyFeedback ? 'Copied!' : 'Share'}
               </button>
             </div>
@@ -874,11 +874,7 @@ export default function Page() {
                   : <><Spinner size={13} /> Creating ZIP... {queue.zipProgress}%</>
               ) : (
                 <>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="7 10 12 15 17 10"/>
-                    <line x1="12" y1="15" x2="12" y2="3"/>
-                  </svg>
+                  <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
                   {queue.readyCount === 1 ? 'Download file' : `Download as ZIP (${queue.readyCount})`}
                 </>
               )}
@@ -927,7 +923,7 @@ export default function Page() {
             mobilePanel === 'search' ? 'text-brand' : 'text-ink-secondary'
           }`}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+          <MagnifyingGlassIcon className="w-[15px] h-[15px]" />
           Search
         </button>
         <button
@@ -936,7 +932,7 @@ export default function Page() {
             mobilePanel === 'queue' ? 'text-brand' : 'text-ink-secondary'
           }`}
         >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <ArrowDownTrayIcon className="w-[15px] h-[15px]" />
           Queue
           {queue.entries.length > 0 && (
             <span className="min-w-[18px] h-[18px] px-1 bg-brand text-brand-dark text-[9px] font-bold rounded-full flex items-center justify-center font-mono">

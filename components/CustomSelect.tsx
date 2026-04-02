@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
 interface Option {
   value: string;
@@ -43,19 +44,9 @@ export function CustomSelect({ value, onChange, options, placeholder, width = 'w
         className="w-full h-7 px-2.5 rounded text-ink-primary text-xs cursor-pointer transition-colors focus:ring-2 focus:ring-brand focus:outline-none bg-bg-surface hover:bg-bg-hover flex items-center justify-between"
       >
         <span>{displayLabel}</span>
-        <svg
-          width="14"
-          height="14"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <ChevronDownIcon
+          className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {isOpen && (
