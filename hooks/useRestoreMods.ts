@@ -83,7 +83,7 @@ export function useRestoreMods(
     setIsRestoring(true);
     setFailedCount(null);
 
-    const service = state.source === 'curseforge' ? curseforgeService : modrinthService;
+    const service = state.source === 'modrinth' ? modrinthService : curseforgeService;
 
     // Work exclusively from incoming state.mods — not from current queue entries,
     // which were just cleared and could be stale under any concurrent scenario.

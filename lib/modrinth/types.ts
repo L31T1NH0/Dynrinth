@@ -1,10 +1,12 @@
 // ─── Filter domain ────────────────────────────────────────────────────────────
 
-export type Source       = 'modrinth' | 'curseforge';
+export type Source       = 'modrinth' | 'curseforge' | 'curseforge-bedrock';
 export type Loader       = 'fabric' | 'forge';
 export type ShaderLoader = 'iris' | 'optifine';
 export type PluginLoader = 'bukkit' | 'spigot' | 'paper';
-export type ContentType  = 'mod' | 'plugin' | 'datapack' | 'resourcepack' | 'shader';
+export type ContentType  =
+  | 'mod' | 'plugin' | 'datapack' | 'resourcepack' | 'shader'  // Java / Modrinth
+  | 'addon' | 'map' | 'texture-pack' | 'script' | 'skin';      // Bedrock (CurseForge)
 
 /**
  * Single source of truth for all active filters.

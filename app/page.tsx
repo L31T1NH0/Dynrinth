@@ -55,13 +55,21 @@ const PLUGIN_LOADERS: { id: PluginLoader; label: string }[] = [
   { id: 'bukkit', label: 'Bukkit' },
 ];
 
-const CONTENT_TYPES: { id: ContentType; label: string; usesLoader: boolean }[] = [
-  { id: 'mod',          label: 'Mods',          usesLoader: true  },
-  { id: 'plugin',       label: 'Plugins',       usesLoader: false },
-  { id: 'datapack',     label: 'Datapacks',     usesLoader: false },
-  { id: 'resourcepack', label: 'Resourcepacks', usesLoader: false },
-  { id: 'shader',       label: 'Shaders',       usesLoader: false },
+const CONTENT_TYPES: { id: ContentType; label: string; usesLoader: boolean; sources: Source[] }[] = [
+  { id: 'mod',            label: 'Mods',          usesLoader: true,  sources: ['modrinth', 'curseforge']          },
+  { id: 'plugin',         label: 'Plugins',       usesLoader: false, sources: ['modrinth']                        },
+  { id: 'datapack',       label: 'Datapacks',     usesLoader: false, sources: ['modrinth', 'curseforge']          },
+  { id: 'resourcepack',   label: 'Resourcepacks', usesLoader: false, sources: ['modrinth', 'curseforge']          },
+  { id: 'shader',         label: 'Shaders',       usesLoader: false, sources: ['modrinth', 'curseforge']          },
+  { id: 'addon',          label: 'Addons',        usesLoader: false, sources: ['curseforge-bedrock']              },
+  { id: 'map',            label: 'Maps',          usesLoader: false, sources: ['curseforge-bedrock']              },
+  { id: 'texture-pack',   label: 'Texture Packs', usesLoader: false, sources: ['curseforge-bedrock']              },
+  { id: 'script',         label: 'Scripts',       usesLoader: false, sources: ['curseforge-bedrock']              },
+  { id: 'skin',           label: 'Skins',         usesLoader: false, sources: ['curseforge-bedrock']              },
 ];
+
+/** Content types that belong exclusively to Bedrock. */
+const BEDROCK_CONTENT_TYPES = new Set<ContentType>(['addon', 'map', 'texture-pack', 'script', 'skin']);
 
 const DEFAULT_FILTERS: Filters = {
   source:       'modrinth',
@@ -222,10 +230,12 @@ export default function Page() {
   // ── Load MC versions (re-fetched when source changes) ────────────────────
 
   useEffect(() => {
-    const service = filters.source === 'curseforge' ? curseforgeService : modrinthService;
     setVersions([]);
     setFilters(prev => ({ ...prev, version: '' }));
-    service.fetchGameVersions()
+    const fetchVersions = filters.source === 'modrinth'
+      ? modrinthService.fetchGameVersions()
+      : curseforgeService.fetchGameVersions(filters.source);
+    fetchVersions
       .then(releases => {
         setVersions(releases);
         if (releases.length) {
@@ -263,7 +273,7 @@ export default function Page() {
     }
 
     try {
-      const service = snapshot.source === 'curseforge' ? curseforgeService : modrinthService;
+      const service = snapshot.source === 'modrinth' ? modrinthService : curseforgeService;
       const signal  = append ? undefined : abortRef.current?.signal;
       let page      = await service.searchProjects(query, snapshot, startOffset, signal);
       let usedVersion = snapshot.version;
@@ -341,7 +351,12 @@ export default function Page() {
   // ── Filter setters ────────────────────────────────────────────────────────
 
   const setSource = useCallback((s: Source) => {
-    setFilters(prev => ({ ...prev, source: s }));
+    setFilters(prev => {
+      const toBedrockBoundary   = s === 'curseforge-bedrock' && !BEDROCK_CONTENT_TYPES.has(prev.contentType);
+      const fromBedrockBoundary = s !== 'curseforge-bedrock' &&  BEDROCK_CONTENT_TYPES.has(prev.contentType);
+      const contentType = toBedrockBoundary ? 'addon' : fromBedrockBoundary ? 'mod' : prev.contentType;
+      return { ...prev, source: s, contentType };
+    });
   }, []);
 
   const setVersion = useCallback((v: string) => {
@@ -367,6 +382,16 @@ export default function Page() {
       shaderLoader: ct === 'shader' ? prev.shaderLoader : null,
       pluginLoader: ct === 'plugin' ? prev.pluginLoader : null,
     }));
+  }, []);
+
+  // ── Auto-select Bedrock on mobile (skipped when a share URL is present) ────
+
+  useEffect(() => {
+    const hasShareData = new URLSearchParams(window.location.search).has('data');
+    if (hasShareData) return;
+    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+    if (isMobile) setSource('curseforge-bedrock');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── URL share detection (two-phase: mount → after versions load) ──────────
@@ -458,7 +483,7 @@ export default function Page() {
             <span className="text-[14px] font-semibold tracking-tight">dynrinth</span>
           </div>
           <div className="flex overflow-x-auto scrollbar-none gap-6">
-            {CONTENT_TYPES.filter(t => filters.source === 'modrinth' || t.id !== 'plugin').map(t => (
+            {CONTENT_TYPES.filter(t => t.sources.includes(filters.source)).map(t => (
               <button
                 key={t.id}
                 onClick={() => setContentType(t.id)}
@@ -490,8 +515,9 @@ export default function Page() {
               value={filters.source}
               onChange={v => setSource(v as Source)}
               options={[
-                { value: 'modrinth', label: 'Modrinth' },
-                { value: 'curseforge', label: 'CurseForge' },
+                { value: 'modrinth',           label: 'Modrinth'    },
+                { value: 'curseforge',          label: 'CurseForge'  },
+                { value: 'curseforge-bedrock',  label: 'Bedrock'     },
               ]}
               width="w-32"
             />

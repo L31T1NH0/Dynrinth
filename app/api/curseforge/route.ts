@@ -7,6 +7,7 @@ const ALLOWED_PREFIXES = [
   '/minecraft/version',
   '/mods/search',
   '/mods/',
+  '/games/78022/versions',
 ];
 
 export async function GET(request: NextRequest) {

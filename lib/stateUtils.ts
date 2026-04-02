@@ -35,7 +35,7 @@ function migrate(raw: unknown): ModListState | null {
       typeof obj.version === 'string' &&
       typeof obj.loader  === 'string' &&
       typeof obj.source  === 'string' &&
-      (obj.source === 'modrinth' || obj.source === 'curseforge') &&
+      (obj.source === 'modrinth' || obj.source === 'curseforge' || obj.source === 'curseforge-bedrock') &&
       Array.isArray(obj.mods) &&
       (obj.mods as unknown[]).every(m => typeof m === 'string')
     ) {

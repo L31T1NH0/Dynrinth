@@ -69,3 +69,12 @@ export interface CfModResponse {
 export interface CfFilesResponse {
   data: CfFile[];
 }
+
+export interface CfBedrockVersionGroup {
+  type:     number;
+  versions: string[];
+}
+
+export interface CfBedrockVersionsResponse {
+  data: CfBedrockVersionGroup[];
+}

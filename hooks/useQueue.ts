@@ -5,7 +5,7 @@ import { downloadAsZip, downloadSingleFile, type DownloadItem } from '@/lib/down
 import type { Filters, ResolvedVersion } from '@/lib/modrinth/types';
 
 function getService(filters: Filters) {
-  return filters.source === 'curseforge' ? curseforgeService : modrinthService;
+  return filters.source === 'modrinth' ? modrinthService : curseforgeService;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────

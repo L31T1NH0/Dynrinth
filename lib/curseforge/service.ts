@@ -4,9 +4,11 @@ import type {
   ProjectInfo,
   ResolveResult,
   SearchPage,
+  Source,
   VersionDependency,
 } from '@/lib/modrinth/types';
 import type {
+  CfBedrockVersionsResponse,
   CfFile,
   CfFilesResponse,
   CfMod,
@@ -15,7 +17,8 @@ import type {
   CfVersionsResponse,
 } from './types';
 
-const GAME_ID = 432;
+const JAVA_GAME_ID    = 432;
+const BEDROCK_GAME_ID = 78022;
 
 /** Results per page — matches the Modrinth service constant. */
 export const PAGE_SIZE = 20;
@@ -27,13 +30,26 @@ function cfProxy(path: string): string {
 
 // ─── Internal mappings ────────────────────────────────────────────────────────
 
-const CLASS_IDS: Record<Filters['contentType'], number> = {
+const JAVA_CLASS_IDS: Partial<Record<Filters['contentType'], number>> = {
   mod:          6,
   plugin:       5,
   datapack:     6945,
   resourcepack: 12,
   shader:       6552,
 };
+
+const BEDROCK_CLASS_IDS: Partial<Record<Filters['contentType'], number>> = {
+  addon:          4984,
+  map:            6913,
+  'texture-pack': 6929,
+  script:         6940,
+  skin:           6925,
+};
+
+function getClassId(source: Source, contentType: Filters['contentType']): number {
+  const map = source === 'curseforge-bedrock' ? BEDROCK_CLASS_IDS : JAVA_CLASS_IDS;
+  return map[contentType] ?? 0;
+}
 
 /**
  * CurseForge modLoaderType integers.
@@ -72,10 +88,26 @@ function mapCfFileToModFile(file: CfFile): ModFile {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 /**
- * Fetch all stable Minecraft release versions from CurseForge, newest first.
- * Throws on network error or non-OK HTTP status.
+ * Fetch available game versions from CurseForge, newest first.
+ * Uses the Minecraft Java endpoint for Java edition and the generic game
+ * versions endpoint for Bedrock. Throws on network error or non-OK HTTP status.
  */
-export async function fetchGameVersions(): Promise<string[]> {
+export async function fetchGameVersions(source: Source): Promise<string[]> {
+  if (source === 'curseforge-bedrock') {
+    const r = await fetch(cfProxy('/games/78022/versions'));
+    if (!r.ok) throw new Error(`CF fetchGameVersions (Bedrock): HTTP ${r.status}`);
+    const data: CfBedrockVersionsResponse = await r.json();
+    const all = [...new Set(data.data.flatMap(g => g.versions))];
+    return all.sort((a, b) => {
+      const pa = a.split('.').map(Number);
+      const pb = b.split('.').map(Number);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const diff = (pb[i] ?? 0) - (pa[i] ?? 0);
+        if (diff) return diff;
+      }
+      return 0;
+    });
+  }
   const r = await fetch(cfProxy('/minecraft/version'));
   if (!r.ok) throw new Error(`CF fetchGameVersions: HTTP ${r.status}`);
   const data: CfVersionsResponse = await r.json();
@@ -95,18 +127,18 @@ export async function searchProjects(
   signal?: AbortSignal,
 ): Promise<SearchPage> {
   const params = new URLSearchParams({
-    gameId:     String(GAME_ID),
-    classId:    String(CLASS_IDS[filters.contentType]),
-    index:      String(offset),
-    pageSize:   String(PAGE_SIZE),
-    sortField:  '2', // Popularity
-    sortOrder:  'desc',
+    gameId:    String(filters.source === 'curseforge-bedrock' ? BEDROCK_GAME_ID : JAVA_GAME_ID),
+    classId:   String(getClassId(filters.source, filters.contentType)),
+    index:     String(offset),
+    pageSize:  String(PAGE_SIZE),
+    sortField: '2', // Popularity
+    sortOrder: 'desc',
   });
 
   if (filters.version) params.set('gameVersion', filters.version);
   if (query)           params.set('searchFilter', query);
 
-  if (filters.contentType === 'mod') {
+  if (filters.contentType === 'mod' && filters.source !== 'curseforge-bedrock') {
     const loaderType = LOADER_TYPES[filters.loader];
     if (loaderType !== undefined) params.set('modLoaderType', String(loaderType));
   }
@@ -140,7 +172,7 @@ export async function resolveProjectVersion(
 
     if (filters.version) params.set('gameVersion', filters.version);
 
-    if (filters.contentType === 'mod') {
+    if (filters.contentType === 'mod' && filters.source !== 'curseforge-bedrock') {
       const loaderType = LOADER_TYPES[filters.loader];
       if (loaderType !== undefined) params.set('modLoaderType', String(loaderType));
     }
