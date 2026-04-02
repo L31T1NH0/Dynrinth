@@ -1,7 +1,7 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
 import * as modrinthService from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
-import { downloadAsZip, type DownloadItem } from '@/lib/download';
+import { downloadAsZip, downloadSingleFile, type DownloadItem } from '@/lib/download';
 import type { Filters, ResolvedVersion } from '@/lib/modrinth/types';
 
 function getService(filters: Filters) {
@@ -271,6 +271,21 @@ export function useQueue(): UseQueueReturn {
 
     dispatch({ type: 'SET_DOWNLOADING', value: true });
     ready.forEach(e => dispatch({ type: 'SET_STATUS', id: e.id, status: 'downloading' }));
+
+    // Single file: download directly instead of bundling into a ZIP.
+    if (ready.length === 1) {
+      const entry = ready[0];
+      const ok = await downloadSingleFile(
+        { id: entry.id, filename: entry.resolved.file.filename, url: entry.resolved.file.url },
+        (id, pct) => {
+          dispatch({ type: 'SET_PROGRESS', id, progress: pct });
+          dispatch({ type: 'SET_ZIP_PROGRESS', progress: pct });
+        },
+      );
+      dispatch({ type: ok ? 'SET_STATUS' : 'ERROR', id: entry.id, ...(ok ? { status: 'done' } : { reason: 'network' }) } as QueueAction);
+      dispatch({ type: 'SET_DOWNLOADING', value: false });
+      return;
+    }
 
     const items: DownloadItem[] = ready.map(e => ({
       id:       e.id,

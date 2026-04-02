@@ -728,7 +728,9 @@ export default function Page() {
               className="w-full h-10 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover hover:border-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {queue.isDownloading ? (
-                <><Spinner size={13} /> Creating ZIP... {queue.zipProgress}%</>
+                queue.entries.filter(e => e.status === 'downloading').length === 1
+                  ? <><Spinner size={13} /> Downloading... {queue.zipProgress}%</>
+                  : <><Spinner size={13} /> Creating ZIP... {queue.zipProgress}%</>
               ) : (
                 <>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -736,7 +738,7 @@ export default function Page() {
                     <polyline points="7 10 12 15 17 10"/>
                     <line x1="12" y1="15" x2="12" y2="3"/>
                   </svg>
-                  Download as ZIP ({queue.readyCount})
+                  {queue.readyCount === 1 ? 'Download file' : `Download as ZIP (${queue.readyCount})`}
                 </>
               )}
             </button>

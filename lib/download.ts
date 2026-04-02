@@ -51,6 +51,27 @@ async function fetchFile(
 }
 
 /**
+ * Fetch and trigger a direct browser download for a single file.
+ * @returns true on success, false on network failure.
+ */
+export async function downloadSingleFile(
+  item:       DownloadItem,
+  onProgress: (id: string, pct: number) => void,
+): Promise<boolean> {
+  try {
+    const f    = await fetchFile(item, pct => onProgress(item.id, pct));
+    const blob = new Blob([f.data.buffer as ArrayBuffer]);
+    const url  = URL.createObjectURL(blob);
+    const a    = Object.assign(document.createElement('a'), { href: url, download: f.filename });
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 15_000);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Download all items, bundle them into a single ZIP, and trigger a browser
  * download for that ZIP — one confirmation instead of N.
  *
