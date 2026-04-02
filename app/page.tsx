@@ -209,6 +209,9 @@ export default function Page() {
   const [importError,    setImportError]    = useState<string | null>(null);
   const [copyFeedback,   setCopyFeedback]   = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
+  // Holds a version locked by restore; prevents the versions-load effect from
+  // overwriting it with releases[0] when it re-fires due to a source change.
+  const restoredVersionRef = useRef<string | null>(null);
 
   // ── Mobile panel ─────────────────────────────────────────────────────────
   const [mobilePanel, setMobilePanel] = useState<'search' | 'queue'>('search');
@@ -225,7 +228,11 @@ export default function Page() {
     service.fetchGameVersions()
       .then(releases => {
         setVersions(releases);
-        if (releases.length) setFilters(prev => ({ ...prev, version: releases[0] }));
+        if (releases.length) {
+          const locked = restoredVersionRef.current;
+          restoredVersionRef.current = null;
+          setFilters(prev => ({ ...prev, version: locked ?? releases[0] }));
+        }
       })
       .catch(() => { /* version list unavailable — search will stay paused */ });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -376,6 +383,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!versions.length || !pendingRestore) return;
+    restoredVersionRef.current = pendingRestore.version;
     restoreMods(pendingRestore);
     setPendingRestore(null);
   }, [versions, pendingRestore, restoreMods]);
@@ -398,6 +406,7 @@ export default function Page() {
     try {
       const state = await readJSONFile(file);
       setImportError(null);
+      restoredVersionRef.current = state.version;
       await restoreMods(state);
     } catch (err) {
       setImportError((err as Error).message);
