@@ -13,6 +13,11 @@ import type {
   SearchResult,
 } from '@/lib/modrinth/types';
 import { useQueue, type QueueItemStatus } from '@/hooks/useQueue';
+import { useRestoreMods } from '@/hooks/useRestoreMods';
+import {
+  buildShareUrl, downloadJSON, readJSONFile, buildExportState, decodeState,
+  type ModListState,
+} from '@/lib/stateUtils';
 import { CustomSelect } from '@/components/CustomSelect';
 
 const PAGE_SIZE = modrinthService.PAGE_SIZE;
@@ -183,6 +188,13 @@ export default function Page() {
   // ── Queue ─────────────────────────────────────────────────────────────────
   const queue = useQueue();
 
+  // ── Restore (import / share URL) ─────────────────────────────────────────
+  const { isRestoring, failedCount, restoreMods } = useRestoreMods(queue, setFilters);
+  const [pendingRestore, setPendingRestore] = useState<ModListState | null>(null);
+  const [importError,    setImportError]    = useState<string | null>(null);
+  const [copyFeedback,   setCopyFeedback]   = useState(false);
+  const importInputRef = useRef<HTMLInputElement>(null);
+
   // ── Mobile panel ─────────────────────────────────────────────────────────
   const [mobilePanel, setMobilePanel] = useState<'search' | 'queue'>('search');
 
@@ -334,6 +346,65 @@ export default function Page() {
       pluginLoader: ct === 'plugin' ? prev.pluginLoader : null,
     }));
   }, []);
+
+  // ── URL share detection (two-phase: mount → after versions load) ──────────
+
+  useEffect(() => {
+    const data = new URLSearchParams(window.location.search).get('data');
+    if (!data) return;
+    const state = decodeState(data);
+    if (!state) return; // leave URL intact — corrupt/unknown format
+    setPendingRestore(state);
+    window.history.replaceState({}, '', window.location.pathname);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!versions.length || !pendingRestore) return;
+    restoreMods(pendingRestore);
+    setPendingRestore(null);
+  }, [versions, pendingRestore, restoreMods]);
+
+  // ── Export / Import / Share ───────────────────────────────────────────────
+
+  const getExportState = useCallback(() =>
+    buildExportState(
+      filters.version,
+      filters.loader,
+      filters.source,
+      queue.entries.filter(e => !e.isDependency).map(e => e.id),
+    ),
+  [filters.version, filters.loader, filters.source, queue.entries]);
+
+  const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = ''; // allow re-selecting the same file
+    try {
+      const state = await readJSONFile(file);
+      setImportError(null);
+      await restoreMods(state);
+    } catch (err) {
+      setImportError((err as Error).message);
+    }
+  }, [restoreMods]);
+
+  const handleShare = useCallback(async () => {
+    const url = buildShareUrl(getExportState());
+    if (!url) {
+      setImportError('List too large for a URL — use Export instead.');
+      return;
+    }
+    setImportError(null);
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      prompt('Copy this share URL:', url);
+      return;
+    }
+    setCopyFeedback(true);
+    setTimeout(() => setCopyFeedback(false), 2000);
+  }, [getExportState]);
 
   // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -722,6 +793,76 @@ export default function Page() {
 
           {/* Download footer */}
           <div className="px-4 py-3.5 border-t border-line-subtle shrink-0">
+
+            {/* Hidden file input for import */}
+            <input
+              ref={importInputRef}
+              type="file"
+              accept=".json,application/json"
+              className="hidden"
+              onChange={handleImportFile}
+            />
+
+            {/* Export / Import / Share row */}
+            <div className="flex gap-2 mb-2.5">
+              <button
+                onClick={() => downloadJSON(getExportState())}
+                disabled={isRestoring}
+                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-secondary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Export mod list as JSON"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Export
+              </button>
+              <button
+                onClick={() => importInputRef.current?.click()}
+                disabled={isRestoring}
+                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-secondary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Import mod list from JSON"
+              >
+                {isRestoring ? (
+                  <><Spinner size={11} /> Restoring...</>
+                ) : (
+                  <>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                      <polyline points="7 16 12 21 17 16"/>
+                      <line x1="12" y1="21" x2="12" y2="9"/>
+                    </svg>
+                    Import
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleShare}
+                disabled={isRestoring}
+                className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-secondary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Copy shareable URL"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+                  <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+                </svg>
+                {copyFeedback ? 'Copied!' : 'Share'}
+              </button>
+            </div>
+
+            {/* Partial restore failure */}
+            {failedCount !== null && failedCount > 0 && (
+              <div className="mb-2 text-[10px] text-amber-400 text-center">
+                {failedCount} mod{failedCount > 1 ? 's' : ''} could not be loaded
+              </div>
+            )}
+
+            {/* Import / share error */}
+            {importError && (
+              <div className="mb-2 text-[10px] text-red-err text-center">{importError}</div>
+            )}
+
             <button
               onClick={() => queue.downloadZip(zipName)}
               disabled={queue.readyCount === 0 || queue.isDownloading}
