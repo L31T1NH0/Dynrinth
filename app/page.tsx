@@ -5,6 +5,7 @@ import {
   MagnifyingGlassIcon,
   PlusIcon,
   CheckIcon,
+  CheckCircleIcon,
   XMarkIcon,
   ArrowUpTrayIcon,
   ArrowDownTrayIcon,
@@ -229,6 +230,10 @@ export default function Page() {
   // ── Snackbar ──────────────────────────────────────────────────────────────
   const [snackbar, setSnackbar] = useState<string | null>(null);
   const snackbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Added-to-queue snackbar (mobile) ─────────────────────────────────────
+  const [addedSnackbar, setAddedSnackbar] = useState(false);
+  const addedSnackbarTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Archive format ────────────────────────────────────────────────────────
   const [archiveFormat, setArchiveFormat] = useState<'zip' | 'tar.gz'>('zip');
@@ -707,7 +712,12 @@ export default function Page() {
 
                       <button
                         disabled={queued}
-                        onClick={() => { queue.add(item.project_id, item.title, item.icon_url, filters); setMobilePanel('queue'); }}
+                        onClick={() => {
+                          queue.add(item.project_id, item.title, item.icon_url, filters);
+                          if (addedSnackbarTimerRef.current) clearTimeout(addedSnackbarTimerRef.current);
+                          setAddedSnackbar(true);
+                          addedSnackbarTimerRef.current = setTimeout(() => setAddedSnackbar(false), 2000);
+                        }}
                         className={[
                           'no-ring w-8 h-8 rounded-lg text-xs flex items-center justify-center shrink-0 transition-all duration-150 leading-none self-center',
                           queued && !isActive
@@ -992,6 +1002,14 @@ export default function Page() {
           </div>
         </div>
       </div>
+
+      {/* ── Added-to-queue snackbar ──────────────────────────────────────── */}
+      {addedSnackbar && (
+        <div className="fixed bottom-16 md:hidden left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-brand/10 border border-brand/30 text-brand text-xs shadow-lg backdrop-blur-sm max-w-sm w-[calc(100%-2rem)]">
+          <CheckCircleIcon className="w-4 h-4 shrink-0" />
+          <span className="flex-1">Added to queue</span>
+        </div>
+      )}
 
       {/* ── Snackbar ─────────────────────────────────────────────────────── */}
       {snackbar && (
