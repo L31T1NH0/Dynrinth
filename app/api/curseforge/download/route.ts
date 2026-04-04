@@ -7,7 +7,7 @@ const ALLOWED_HOSTS = ['edge.forgecdn.net', 'mediafilez.forgecdn.net'];
 
 export async function GET(request: NextRequest) {
   const ip = getRequestIp(request);
-  const limit = checkRateLimit(ip);
+  const limit = await checkRateLimit(ip, '/api/curseforge/download');
   if (!limit.allowed) {
     return NextResponse.json(
       { error: 'Rate limit exceeded.' },

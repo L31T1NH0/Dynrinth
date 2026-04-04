@@ -1,29 +1,127 @@
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 400;
 
-const store = new Map<string, number[]>();
-let lastCleanup = Date.now();
+type RateLimitResult = { allowed: true } | { allowed: false; retryAfter: number };
 
-/** Sweep stale entries at most once per window to prevent unbounded growth. */
-function cleanup(now: number) {
-  if (now - lastCleanup < WINDOW_MS) return;
-  lastCleanup = now;
-  for (const [key, timestamps] of store) {
-    const recent = timestamps.filter(t => now - t < WINDOW_MS);
-    if (recent.length === 0) store.delete(key);
-    else store.set(key, recent);
+export interface RateLimitStore {
+  checkAndConsume(key: string): Promise<RateLimitResult>;
+}
+
+class InMemoryRateLimitStore implements RateLimitStore {
+  private readonly store = new Map<string, number[]>();
+  private lastCleanup = Date.now();
+
+  /** Sweep stale entries at most once per window to prevent unbounded growth. */
+  private cleanup(now: number) {
+    if (now - this.lastCleanup < WINDOW_MS) return;
+    this.lastCleanup = now;
+    for (const [key, timestamps] of this.store) {
+      const recent = timestamps.filter(t => now - t < WINDOW_MS);
+      if (recent.length === 0) this.store.delete(key);
+      else this.store.set(key, recent);
+    }
+  }
+
+  async checkAndConsume(key: string): Promise<RateLimitResult> {
+    const now = Date.now();
+    this.cleanup(now);
+
+    const recent = (this.store.get(key) ?? []).filter(t => now - t < WINDOW_MS);
+    if (recent.length >= MAX_REQUESTS) {
+      const retryAfter = Math.ceil((recent[0] + WINDOW_MS - now) / 1000);
+      return { allowed: false, retryAfter };
+    }
+
+    recent.push(now);
+    this.store.set(key, recent);
+    return { allowed: true };
   }
 }
 
-export function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  cleanup(now);
-  const recent = (store.get(ip) ?? []).filter(t => now - t < WINDOW_MS);
-  if (recent.length >= MAX_REQUESTS) {
-    const retryAfter = Math.ceil((recent[0] + WINDOW_MS - now) / 1000);
-    return { allowed: false, retryAfter };
+class RedisKvRateLimitStore implements RateLimitStore {
+  constructor(
+    private readonly baseUrl: string,
+    private readonly token: string,
+  ) {}
+
+  private async request(path: string, init?: RequestInit) {
+    return fetch(`${this.baseUrl}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        ...(init?.headers ?? {}),
+      },
+      cache: 'no-store',
+    });
   }
-  recent.push(now);
-  store.set(ip, recent);
-  return { allowed: true };
+
+  async checkAndConsume(key: string): Promise<RateLimitResult> {
+    // Upstash/Vercel KV REST supports pipelining multiple commands in one request.
+    const pipelineResponse = await this.request('/pipeline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify([
+        ['INCR', key],
+        ['PTTL', key],
+      ]),
+    });
+
+    if (!pipelineResponse.ok) {
+      throw new Error(`KV pipeline failed with HTTP ${pipelineResponse.status}`);
+    }
+
+    const pipelineJson: Array<{ result: number | null; error?: string }> = await pipelineResponse.json();
+    const [incrResult, ttlResult] = pipelineJson;
+
+    if (incrResult?.error || ttlResult?.error || typeof incrResult?.result !== 'number') {
+      throw new Error('KV pipeline returned an invalid response.');
+    }
+
+    const hits = incrResult.result;
+    const ttlMs = typeof ttlResult.result === 'number' ? ttlResult.result : -1;
+
+    if (hits === 1 || ttlMs < 0) {
+      const expireResponse = await this.request(`/expire/${encodeURIComponent(key)}/${Math.ceil(WINDOW_MS / 1000)}`);
+      if (!expireResponse.ok) {
+        throw new Error(`KV expire failed with HTTP ${expireResponse.status}`);
+      }
+    }
+
+    if (hits > MAX_REQUESTS) {
+      const retryAfterMs = ttlMs > 0 ? ttlMs : WINDOW_MS;
+      return { allowed: false, retryAfter: Math.ceil(retryAfterMs / 1000) };
+    }
+
+    return { allowed: true };
+  }
+}
+
+const inMemoryStore = new InMemoryRateLimitStore();
+
+function createRateLimitStore(): RateLimitStore {
+  const url = process.env.KV_REST_API_URL;
+  const token = process.env.KV_REST_API_TOKEN;
+
+  if (process.env.NODE_ENV === 'production' && url && token) {
+    return new RedisKvRateLimitStore(url, token);
+  }
+
+  return inMemoryStore;
+}
+
+const rateLimitStore = createRateLimitStore();
+
+function rateLimitKey(ip: string, route: string): string {
+  return `rate-limit:${route}:${ip}`;
+}
+
+export async function checkRateLimit(ip: string, route: string): Promise<RateLimitResult> {
+  const key = rateLimitKey(ip, route);
+
+  try {
+    return await rateLimitStore.checkAndConsume(key);
+  } catch (error) {
+    console.error('Rate limit store error, falling back to in-memory store.', error);
+    return inMemoryStore.checkAndConsume(key);
+  }
 }
