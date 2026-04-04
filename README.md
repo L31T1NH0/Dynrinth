@@ -52,28 +52,25 @@ npm start
 
 ## 📁 Estrutura do Projeto
 
-```
+```text
 modrinth-downloader/
-├── app/                      # Aplicação Next.js (App Router)
-│   ├── layout.tsx           # Layout principal
-│   └── page.tsx             # Página principal
-├── components/
-│   └── CustomSelect.tsx      # Componente de seletor customizado
-├── lib/
-│   ├── download.ts          # Lógica de download e empacotamento ZIP
-│   ├── modrinth/
-│   │   ├── service.ts       # Integração com API do Modrinth
-│   │   └── types.ts         # Tipos TypeScript
-│   └── curseforge/
-│       ├── service.ts       # Integração com API do CurseForge
-│       └── types.ts         # Tipos TypeScript
-├── hooks/
-│   └── useQueue.ts          # Hook para gerenciar fila de downloads
-├── package.json             # Dependências do projeto
+├── app/                     # Rotas e UI (App Router), incluindo API routes
+├── components/              # Componentes React reutilizáveis
+├── hooks/                   # Hooks customizados para estado e fluxo
+├── lib/                     # Serviços, utilitários e integrações externas
+├── package.json             # Scripts e dependências do projeto
 ├── tsconfig.json            # Configuração TypeScript
-├── tailwind.config.ts       # Configuração Tailwind CSS
-└── next.config.ts           # Configuração Next.js
+└── next.config.ts           # Configuração do Next.js
 ```
+
+Arquivos críticos:
+
+- `app/page.tsx`: tela principal e fluxo de busca/download.
+- `app/api/curseforge/route.ts`: proxy de busca para a API CurseForge.
+- `lib/modrinth/service.ts` e `lib/curseforge/service.ts`: integração com APIs externas.
+- `lib/download.ts`: preparo e empacotamento dos downloads em ZIP.
+
+> Observação: a estrutura detalhada pode ser consultada via `rg --files`.
 
 ## 🛠 Tecnologias
 
