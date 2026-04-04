@@ -19,6 +19,52 @@ const CURRENT_FORMAT_VERSION = 1;
  */
 const MAX_ENCODED_URL_LENGTH = 8000;
 
+// ─── Modrinth index format (.mrpack) ─────────────────────────────────────────
+
+const MODRINTH_CDN_RE = /cdn\.modrinth\.com\/data\/([^/]+)\/versions\//;
+
+interface ModrinthIndex {
+  game:         string;
+  formatVersion: number;
+  files:        Array<{ downloads: string[] }>;
+  dependencies: Record<string, string>;
+}
+
+function isModrinthIndex(raw: unknown): raw is ModrinthIndex {
+  if (typeof raw !== 'object' || raw === null) return false;
+  const o = raw as Record<string, unknown>;
+  return (
+    o['game'] === 'minecraft' &&
+    Array.isArray(o['files']) &&
+    typeof o['dependencies'] === 'object' && o['dependencies'] !== null
+  );
+}
+
+function fromModrinthIndex(index: ModrinthIndex): ModListState | null {
+  const deps = index.dependencies;
+  const mcVersion = deps['minecraft'];
+  if (!mcVersion) return null;
+
+  let loader = 'fabric';
+  if ('forge' in deps || 'neoforge' in deps) loader = 'forge';
+
+  const seen = new Set<string>();
+  const mods: string[] = [];
+  for (const file of index.files) {
+    for (const url of file.downloads) {
+      const m = MODRINTH_CDN_RE.exec(url);
+      if (m && !seen.has(m[1])) {
+        seen.add(m[1]);
+        mods.push(m[1]);
+      }
+    }
+  }
+
+  if (mods.length === 0) return null;
+
+  return { formatVersion: CURRENT_FORMAT_VERSION, version: mcVersion, loader, source: 'modrinth', mods };
+}
+
 // ─── Validation & migration ───────────────────────────────────────────────────
 
 /**
@@ -100,7 +146,13 @@ export function readJSONFile(file: File): Promise<ModListState> {
     const reader = new FileReader();
     reader.onload = e => {
       try {
-        const parsed  = JSON.parse(e.target?.result as string);
+        const parsed = JSON.parse(e.target?.result as string);
+        if (isModrinthIndex(parsed)) {
+          const state = fromModrinthIndex(parsed);
+          if (!state) { reject(new Error('No Modrinth CDN files found in index')); return; }
+          resolve(state);
+          return;
+        }
         const migrated = migrate(parsed);
         if (!migrated) { reject(new Error('Invalid or unsupported format')); return; }
         resolve(migrated);
