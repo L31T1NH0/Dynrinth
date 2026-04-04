@@ -1003,6 +1003,8 @@ export default function Page() {
                         <div className="text-[10px] text-red-err mt-0.5">
                           {entry.errorReason === 'no_compatible_version'
                             ? 'No compatible version'
+                            : entry.errorReason === 'threshold_exceeded'
+                            ? 'Batch download limit exceeded'
                             : 'Network error'}
                         </div>
                       )}

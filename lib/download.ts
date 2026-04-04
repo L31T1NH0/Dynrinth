@@ -7,6 +7,43 @@ export interface DownloadItem {
   sizeBytes?: number | null;
 }
 
+export const MAX_BATCH_FILE_COUNT = 250;
+export const MAX_BATCH_TOTAL_SIZE_BYTES = 1_073_741_824; // 1 GiB
+
+export type DownloadDomainErrorCode =
+  | 'batch_file_count_exceeded'
+  | 'batch_total_size_exceeded';
+
+export class DownloadDomainError extends Error {
+  readonly code: DownloadDomainErrorCode;
+
+  constructor(code: DownloadDomainErrorCode, message: string) {
+    super(message);
+    this.name = 'DownloadDomainError';
+    this.code = code;
+  }
+}
+
+function assertBatchWithinLimits(items: DownloadItem[]): void {
+  if (items.length > MAX_BATCH_FILE_COUNT) {
+    throw new DownloadDomainError(
+      'batch_file_count_exceeded',
+      `Batch file count limit exceeded (${items.length}/${MAX_BATCH_FILE_COUNT})`,
+    );
+  }
+
+  const estimatedTotalBytes = items.reduce((total, item) => {
+    return total + Math.max(0, item.sizeBytes ?? 0);
+  }, 0);
+
+  if (estimatedTotalBytes > MAX_BATCH_TOTAL_SIZE_BYTES) {
+    throw new DownloadDomainError(
+      'batch_total_size_exceeded',
+      `Batch total size limit exceeded (${estimatedTotalBytes}/${MAX_BATCH_TOTAL_SIZE_BYTES})`,
+    );
+  }
+}
+
 interface FetchedFile {
   id:       string;
   filename: string;
@@ -91,6 +128,8 @@ export async function downloadAsZip(
   onItemProgress:    (id: string, pct: number) => void,
   onOverallProgress: (pct: number) => void,
 ): Promise<string[]> {
+  assertBatchWithinLimits(items);
+
   const prioritizedItems = [...items].sort(
     (a, b) => (a.sizeBytes ?? Number.POSITIVE_INFINITY) - (b.sizeBytes ?? Number.POSITIVE_INFINITY),
   );
@@ -206,6 +245,8 @@ export async function downloadAsTarGz(
   onItemProgress:    (id: string, pct: number) => void,
   onOverallProgress: (pct: number) => void,
 ): Promise<string[]> {
+  assertBatchWithinLimits(items);
+
   const prioritizedItems = [...items].sort(
     (a, b) => (a.sizeBytes ?? Number.POSITIVE_INFINITY) - (b.sizeBytes ?? Number.POSITIVE_INFINITY),
   );
