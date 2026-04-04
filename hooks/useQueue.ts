@@ -1,7 +1,13 @@
 import { useReducer, useEffect, useRef, useCallback } from 'react';
 import * as modrinthService from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
-import { downloadAsZip, downloadAsTarGz, downloadSingleFile, type DownloadItem } from '@/lib/download';
+import {
+  DownloadDomainError,
+  downloadAsZip,
+  downloadAsTarGz,
+  downloadSingleFile,
+  type DownloadItem,
+} from '@/lib/download';
 import type { FailureReason, Filters, ResolvedVersion } from '@/lib/modrinth/types';
 
 function getService(filters: Filters) {
@@ -26,7 +32,7 @@ export interface QueueEntry {
   filters:       Filters;       // snapshot used for resolution and display
   status:        QueueItemStatus;
   resolved?:     ResolvedVersion;
-  errorReason?:  'no_compatible_version' | FailureReason;
+  errorReason?:  'no_compatible_version' | FailureReason | 'threshold_exceeded';
   /** Per-file download progress 0–100 (meaningful during 'downloading'). */
   progress:      number;
   isDependency:  boolean;
@@ -102,6 +108,13 @@ function inferFailureReason(error: unknown): FailureReason {
 
   if (status === 404) return 'not_found';
   if (status === 429) return 'rate_limited';
+  return 'network';
+}
+
+function inferDownloadErrorReason(
+  error: unknown,
+): FailureReason | 'threshold_exceeded' {
+  if (error instanceof DownloadDomainError) return 'threshold_exceeded';
   return 'network';
 }
 
@@ -365,7 +378,7 @@ export function useQueue(): UseQueueReturn {
 
     const totalFiles  = ready.length;
     let filesComplete = 0;
-    const allFailed:  string[] = [];
+    const failedReasons = new Map<string, QueueEntry['errorReason']>();
 
     for (const [key, groupEntries] of groups) {
       const items: DownloadItem[] = groupEntries.map(e => ({
@@ -386,7 +399,7 @@ export function useQueue(): UseQueueReturn {
             dispatch({ type: 'SET_ZIP_PROGRESS', progress: overall });
           },
         );
-        if (!ok) allFailed.push(entry.queueKey);
+        if (!ok) failedReasons.set(entry.queueKey, 'network');
         filesComplete += 1;
         dispatch({ type: 'SET_ZIP_PROGRESS', progress: Math.round((filesComplete / totalFiles) * 100) });
       } else {
@@ -394,24 +407,34 @@ export function useQueue(): UseQueueReturn {
         const archiveName = `${key}s`; // e.g. "modrinth-mods"
         const downloadFn  = format === 'tar.gz' ? downloadAsTarGz : downloadAsZip;
 
-        const failed = await downloadFn(
-          items,
-          archiveName,
-          (queueKey, pct) => dispatch({ type: 'SET_PROGRESS', queueKey, progress: pct }),
-          (pct) => {
-            const groupProgress = (pct / 100) * items.length;
-            const overall = Math.round(((filesComplete + groupProgress) / totalFiles) * 100);
-            dispatch({ type: 'SET_ZIP_PROGRESS', progress: overall });
-          },
-        );
-        allFailed.push(...failed);
-        filesComplete += items.length;
+        try {
+          const failed = await downloadFn(
+            items,
+            archiveName,
+            (queueKey, pct) => dispatch({ type: 'SET_PROGRESS', queueKey, progress: pct }),
+            (pct) => {
+              const groupProgress = (pct / 100) * items.length;
+              const overall = Math.round(((filesComplete + groupProgress) / totalFiles) * 100);
+              dispatch({ type: 'SET_ZIP_PROGRESS', progress: overall });
+            },
+          );
+          failed.forEach(queueKey => failedReasons.set(queueKey, 'network'));
+          filesComplete += items.length;
+        } catch (error) {
+          const reason = inferDownloadErrorReason(error);
+          groupEntries.forEach((entry) => {
+            dispatch({ type: 'ERROR', queueKey: entry.queueKey, reason });
+            failedReasons.set(entry.queueKey, reason);
+          });
+          filesComplete += items.length;
+        }
       }
     }
 
     ready.forEach(e => {
-      if (allFailed.includes(e.queueKey)) {
-        dispatch({ type: 'ERROR', queueKey: e.queueKey, reason: 'network' });
+      const reason = failedReasons.get(e.queueKey);
+      if (reason) {
+        dispatch({ type: 'ERROR', queueKey: e.queueKey, reason });
       } else {
         dispatch({ type: 'SET_STATUS', queueKey: e.queueKey, status: 'done' });
       }
