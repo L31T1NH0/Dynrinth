@@ -92,7 +92,7 @@ function isPathAllowed(path: string): { valid: true } | { valid: false; reason: 
 
 export async function GET(request: NextRequest) {
   const ip = getRequestIp(request);
-  const limit = checkRateLimit(ip);
+  const limit = await checkRateLimit(ip, '/api/curseforge');
   if (!limit.allowed) {
     return NextResponse.json(
       { error: 'Rate limit exceeded.' },
