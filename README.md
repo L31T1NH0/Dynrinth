@@ -158,11 +158,13 @@ Ajuste `next.config.ts` conforme necessário para suas necessidades específicas
 
 ## 📄 Licença
 
-[Adicionar informação de licença aqui]
+Este projeto está licenciado sob a **MIT License**.  
+Consulte o arquivo [LICENSE](./LICENSE) para o texto completo.
 
 ## 🤝 Contribuições
 
 Contribuições são bem-vindas! Sinta-se livre para abrir issues e pull requests.
+Ao enviar contribuições, você concorda que seu código será disponibilizado sob a mesma **MIT License** deste projeto.
 
 ### Checklist de PR
 
