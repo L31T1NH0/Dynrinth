@@ -3,13 +3,91 @@ import { checkRateLimit } from '@/lib/rateLimit';
 
 const CF_BASE = 'https://api.curseforge.com/v1';
 
-/** Allowlist of path prefixes this proxy will forward to CurseForge. */
-const ALLOWED_PREFIXES = [
-  '/minecraft/version',
-  '/mods/search',
-  '/mods/',
-  '/games/78022/versions',
-];
+const NUMERIC_ID = /^\d+$/;
+
+const SEARCH_ALLOWED_PARAMS = new Set([
+  'gameId',
+  'classId',
+  'index',
+  'pageSize',
+  'sortField',
+  'sortOrder',
+  'gameVersion',
+  'searchFilter',
+  'modLoaderType',
+]);
+
+const MOD_FILES_ALLOWED_PARAMS = new Set([
+  'pageSize',
+  'index',
+  'gameVersion',
+  'modLoaderType',
+]);
+
+function invalidPathResponse(reason: string) {
+  return NextResponse.json(
+    {
+      error: 'Invalid CurseForge path.',
+      code: 'INVALID_CURSEFORGE_PATH',
+      reason,
+    },
+    { status: 400 },
+  );
+}
+
+function hasOnlyAllowedParams(params: URLSearchParams, allowed: Set<string>): boolean {
+  return [...params.keys()].every(key => allowed.has(key));
+}
+
+function isPathAllowed(path: string): { valid: true } | { valid: false; reason: string } {
+  if (!path.startsWith('/')) return { valid: false, reason: 'Path must start with "/".' };
+
+  let parsed: URL;
+  try {
+    parsed = new URL(path, CF_BASE);
+  } catch {
+    return { valid: false, reason: 'Path is not a valid URL path.' };
+  }
+
+  if (parsed.origin !== new URL(CF_BASE).origin) {
+    return { valid: false, reason: 'Cross-origin URLs are not allowed.' };
+  }
+
+  const pathname = parsed.pathname;
+  const params = parsed.searchParams;
+
+  if (pathname === '/mods/search') {
+    return hasOnlyAllowedParams(params, SEARCH_ALLOWED_PARAMS)
+      ? { valid: true }
+      : { valid: false, reason: 'Disallowed query parameter for /mods/search.' };
+  }
+
+  if (pathname === '/minecraft/version' || pathname === '/games/78022/versions') {
+    return [...params.keys()].length === 0
+      ? { valid: true }
+      : { valid: false, reason: `Query parameters are not allowed for ${pathname}.` };
+  }
+
+  const modPathMatch = pathname.match(/^\/mods\/([^/]+)(?:\/(files))?$/);
+  if (!modPathMatch) {
+    return { valid: false, reason: 'Path is outside the allowed endpoint contract.' };
+  }
+
+  const [, modId, suffix] = modPathMatch;
+  if (!NUMERIC_ID.test(modId)) {
+    return { valid: false, reason: 'Mod id must be numeric.' };
+  }
+
+  if (suffix === 'files') {
+    return hasOnlyAllowedParams(params, MOD_FILES_ALLOWED_PARAMS)
+      ? { valid: true }
+      : { valid: false, reason: 'Disallowed query parameter for /mods/{id}/files.' };
+  }
+
+  return [...params.keys()].length === 0
+    ? { valid: true }
+    : { valid: false, reason: 'Query parameters are not allowed for /mods/{id}.' };
+}
 
 export async function GET(request: NextRequest) {
   const ip =
@@ -34,8 +112,13 @@ export async function GET(request: NextRequest) {
 
   const path = new URL(request.url).searchParams.get('path');
 
-  if (!path || !ALLOWED_PREFIXES.some(prefix => path.startsWith(prefix))) {
-    return NextResponse.json({ error: 'Invalid or disallowed path.' }, { status: 400 });
+  if (!path) {
+    return invalidPathResponse('Missing "path" query parameter.');
+  }
+
+  const validation = isPathAllowed(path);
+  if (!validation.valid) {
+    return invalidPathResponse(validation.reason);
   }
 
   const upstream = await fetch(`${CF_BASE}${path}`, {
