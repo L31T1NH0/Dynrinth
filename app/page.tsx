@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react';
+import { useLocale, type Translations } from '@/lib/i18n';
 import { flushSync } from 'react-dom';
 import {
   MagnifyingGlassIcon,
@@ -137,11 +138,11 @@ function loaderLabel(f: Filters): string {
 }
 
 /** User-facing label for queue item status. */
-function statusLabel(s: QueueItemStatus): string {
-  if (s === 'resolving')   return 'Resolving...';
-  if (s === 'pending')     return 'Awaiting...';
-  if (s === 'downloading') return 'Downloading...';
-  if (s === 'done')        return 'Completed';
+function statusLabel(s: QueueItemStatus, t: Translations): string {
+  if (s === 'resolving')   return t.status.resolving;
+  if (s === 'pending')     return t.status.pending;
+  if (s === 'downloading') return t.status.downloading;
+  if (s === 'done')        return t.status.done;
   return '';
 }
 
@@ -279,6 +280,8 @@ function SearchResultSkeletons() {
 
 export default function Page() {
 
+  const t = useLocale();
+
   // ── MC version list ───────────────────────────────────────────────────────
   const [versions, setVersions] = useState<string[]>([]);
 
@@ -304,6 +307,8 @@ export default function Page() {
   const fallbackUsageByInteractionRef = useRef<Map<number, boolean>>(new Map());
   const interactionIdRef = useRef(0);
   const animatedIds = useRef<Set<string>>(new Set());
+  const filtersRef = useRef(filters);
+  filtersRef.current = filters;
   const [searchDebugMeta, setSearchDebugMeta] = useState<SearchFallbackDebugMeta | null>(null);
 
   // ── Queue ─────────────────────────────────────────────────────────────────
@@ -458,13 +463,21 @@ export default function Page() {
 
     const requestId = ++requestIdRef.current;
     abortRef.current?.abort();
+    // Remove the inflight entry for this key so the aborted promise isn't reused
+    // by this request. Without this, the new ctrl's fetch would receive the
+    // AbortError from the previous ctrl and exit without setting results.
+    inflightRef.current.delete(buildSearchKey(query, snapshot, startOffset));
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
     const t0 = performance.now();
 
     if (!append) {
+      const contextChanged =
+        snapshot.source      !== activeRef.current.filters.source ||
+        snapshot.contentType !== activeRef.current.filters.contentType;
       setIsSearching(true);
+      if (contextChanged) setResults([]);
       setOffset(0);
       activeRef.current = { query, filters: snapshot };
       animatedIds.current.clear();
@@ -697,6 +710,7 @@ export default function Page() {
   // ── Filter setters ────────────────────────────────────────────────────────
 
   const setSource = useCallback((s: Source) => {
+    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'source', from: filtersRef.current.source, to: s });
     setFilters(prev => {
       const toBedrockBoundary   = s === 'curseforge-bedrock' && !BEDROCK_CONTENT_TYPES.has(prev.contentType);
       const fromBedrockBoundary = s !== 'curseforge-bedrock' &&  BEDROCK_CONTENT_TYPES.has(prev.contentType);
@@ -704,7 +718,6 @@ export default function Page() {
       if (s !== 'curseforge-bedrock' && prev.source !== 'curseforge-bedrock' && prev.version) {
         preservedVersionRef.current = prev.version;
       }
-      captureEvent({ type: 'filter_change', ts: Date.now(), field: 'source', from: prev.source, to: s });
       return { ...prev, source: s, contentType };
     });
   }, []);
@@ -721,52 +734,42 @@ export default function Page() {
   }, [setSource]);
 
   const setVersion = useCallback((v: string) => {
-    setFilters(prev => {
-      captureEvent({ type: 'filter_change', ts: Date.now(), field: 'version', from: prev.version, to: v });
-      return { ...prev, version: v };
-    });
+    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'version', from: filtersRef.current.version, to: v });
+    setFilters(prev => ({ ...prev, version: v }));
   }, []);
 
   const setLoader = useCallback((l: Loader) => {
-    setFilters(prev => {
-      captureEvent({ type: 'filter_change', ts: Date.now(), field: 'loader', from: prev.loader, to: l });
-      return { ...prev, loader: l };
-    });
+    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'loader', from: filtersRef.current.loader, to: l });
+    setFilters(prev => ({ ...prev, loader: l }));
   }, []);
 
   const toggleShaderLoader = useCallback((sl: ShaderLoader) => {
-    setFilters(prev => {
-      const next = prev.shaderLoader === sl ? null : sl;
-      captureEvent({ type: 'filter_change', ts: Date.now(), field: 'shaderLoader', from: prev.shaderLoader ?? 'none', to: next ?? 'none' });
-      return { ...prev, shaderLoader: next };
-    });
+    const next = filtersRef.current.shaderLoader === sl ? null : sl;
+    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'shaderLoader', from: filtersRef.current.shaderLoader ?? 'none', to: next ?? 'none' });
+    setFilters(prev => ({ ...prev, shaderLoader: prev.shaderLoader === sl ? null : sl }));
   }, []);
 
   const togglePluginLoader = useCallback((pl: PluginLoader) => {
-    setFilters(prev => {
-      const next = prev.pluginLoader === pl ? null : pl;
-      captureEvent({ type: 'filter_change', ts: Date.now(), field: 'pluginLoader', from: prev.pluginLoader ?? 'none', to: next ?? 'none' });
-      return { ...prev, pluginLoader: next };
-    });
+    const next = filtersRef.current.pluginLoader === pl ? null : pl;
+    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'pluginLoader', from: filtersRef.current.pluginLoader ?? 'none', to: next ?? 'none' });
+    setFilters(prev => ({ ...prev, pluginLoader: prev.pluginLoader === pl ? null : pl }));
   }, []);
 
   const setContentType = useCallback((ct: ContentType) => {
-    setFilters(prev => {
-      captureEvent({ type: 'filter_change', ts: Date.now(), field: 'contentType', from: prev.contentType, to: ct });
-      return {
-        ...prev,
-        contentType:  ct,
-        shaderLoader: ct === 'shader' ? prev.shaderLoader : null,
-        pluginLoader: ct === 'plugin' ? prev.pluginLoader : null,
-      };
-    });
+    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'contentType', from: filtersRef.current.contentType, to: ct });
+    setFilters(prev => ({
+      ...prev,
+      contentType:  ct,
+      shaderLoader: ct === 'shader' ? prev.shaderLoader : null,
+      pluginLoader: ct === 'plugin' ? prev.pluginLoader : null,
+    }));
   }, []);
 
   // ── Snackbar: warn when Modrinth + datapack is selected ──────────────────
   useEffect(() => {
     if (filters.source === 'modrinth' && filters.contentType === 'datapack') {
       if (snackbarTimerRef.current) clearTimeout(snackbarTimerRef.current);
-      setSnackbar('Use CurseForge instead; Modrinth datapacks are unreliable (may download mods instead)');
+      setSnackbar(t.snackbar.datapacks);
       snackbarTimerRef.current = setTimeout(() => setSnackbar(null), 6000);
     }
   }, [filters.source, filters.contentType]);
@@ -843,7 +846,7 @@ export default function Page() {
   const handleShare = useCallback(async () => {
     const url = buildShareUrl(getExportState());
     if (!url) {
-      setImportError('List too large for a URL — use Export instead.');
+      setImportError(t.snackbar.listTooLarge);
       return;
     }
     setImportError(null);
@@ -882,18 +885,18 @@ export default function Page() {
             <span className="text-[14px] font-semibold tracking-tight">dynrinth</span>
           </div>
           <div className="flex overflow-x-auto scrollbar-none gap-6">
-            {CONTENT_TYPES.filter(t => t.sources.includes(filters.source)).map(t => (
+            {CONTENT_TYPES.filter(ct => ct.sources.includes(filters.source)).map(ct => (
               <button
-                key={t.id}
-                onClick={() => setContentType(t.id)}
+                key={ct.id}
+                onClick={() => setContentType(ct.id)}
                 className={[
                   'px-0 py-2 text-xs font-medium border-b-2 transition-all duration-150 -mb-px whitespace-nowrap',
-                  filters.contentType === t.id
+                  filters.contentType === ct.id
                     ? 'border-brand text-ink-primary'
                     : 'border-transparent text-ink-secondary hover:text-ink-primary',
                 ].join(' ')}
               >
-                {t.label}
+                {ct.label}
               </button>
             ))}
           </div>
@@ -965,14 +968,14 @@ export default function Page() {
                   value={searchQuery}
                   onChange={handleQueryChange}
                   onKeyDown={handleKeyDown}
-                  placeholder={`Search items...`}
+                  placeholder={t.search.placeholder}
                   className="w-full h-7 pl-8 pr-2 rounded text-ink-primary text-xs placeholder:text-ink-tertiary transition-colors focus:ring-2 focus:ring-brand focus:outline-none bg-bg-surface"
                 />
                 {searchQuery && (
                   <button
                     onClick={clearSearch}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-secondary hover:text-ink-primary"
-                    title="Clear search"
+                    title={t.search.clearTitle}
                   >
                     <XMarkIcon className="w-3 h-3" />
                   </button>
@@ -992,19 +995,19 @@ export default function Page() {
 
             {showMobileSourceSuggestion && (
               <div className="w-full md:hidden rounded-md border border-brand/30 bg-brand-glow px-3 py-2 text-xs text-ink-secondary flex items-center justify-between gap-2">
-                <span>No mobile, Bedrock costuma funcionar melhor. Trocar agora?</span>
+                <span>{t.mobileSuggestion.text}</span>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={dismissMobileSourceSuggestion}
                     className="text-ink-secondary hover:text-ink-primary transition-colors"
                   >
-                    Manter
+                    {t.mobileSuggestion.keep}
                   </button>
                   <button
                     onClick={acceptMobileSourceSuggestion}
                     className="h-6 px-2 rounded bg-brand border border-brand text-brand-dark hover:bg-brand-hover transition-colors"
                   >
-                    Trocar
+                    {t.mobileSuggestion.switch}
                   </button>
                 </div>
               </div>
@@ -1012,7 +1015,7 @@ export default function Page() {
 
             {!!searchQuery.trim() && searchQuery.trim().length < MIN_QUERY_LENGTH && (
               <div className="w-full text-[10px] text-ink-tertiary">
-                Type at least {MIN_QUERY_LENGTH} characters to search.
+                {t.search.minLength.replace('{n}', String(MIN_QUERY_LENGTH))}
               </div>
             )}
 
@@ -1024,7 +1027,11 @@ export default function Page() {
             {fallbackVersion && !isSearching && (
               <div className="px-4 py-2 bg-brand-glow border-b border-brand/30 text-brand text-xs flex items-center gap-2">
                 <InformationCircleIcon className="w-4 h-4 shrink-0" />
-                <span>No {currentTypeInfo.label.toLowerCase()} for {filters.version}. Showing results from {fallbackVersion} instead.</span>
+                <span>{t.fallback.banner
+                  .replace('{type}', currentTypeInfo.label.toLowerCase())
+                  .replace('{version}', filters.version)
+                  .replace('{fallback}', fallbackVersion ?? '')
+                }</span>
               </div>
             )}
 
@@ -1033,7 +1040,7 @@ export default function Page() {
             {!isSearching && hasError && (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-secondary text-xs">
                 <ExclamationTriangleIcon className="w-8 h-8 text-ink-primary" />
-                Error searching. Check your connection.
+                {t.search.error}
               </div>
             )}
 
@@ -1041,12 +1048,12 @@ export default function Page() {
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-secondary text-xs text-center">
                 <MagnifyingGlassIcon className="w-8 h-8 text-ink-secondary opacity-50" />
                 <span>
-                  No results for{' '}
+                  {t.search.noResultsFor}{' '}
                   <strong className="text-ink-primary">
                     {activeRef.current.query || currentTypeInfo.label}
                   </strong>
                   {activeRef.current.query && (
-                    <><br />with {filters.version}</>
+                    <><br />{t.search.withVersion} {filters.version}</>
                   )}
                 </span>
                 {searchDebugMeta && (
@@ -1136,7 +1143,7 @@ export default function Page() {
                             ? 'bg-bg-card text-ink-tertiary cursor-wait'
                             : 'bg-bg-card text-ink-secondary hover:text-brand hover:bg-brand-glow active:scale-95',
                         ].join(' ')}
-                        title={queued ? 'In queue' : 'Add to queue'}
+                        title={queued ? t.queue.inQueue : t.queue.addToQueue}
                       >
                         {isActive
                           ? <Spinner size={12} />
@@ -1156,7 +1163,7 @@ export default function Page() {
                       disabled={isLoadingMore}
                       className="h-8 px-5 rounded-lg bg-bg-surface text-ink-secondary text-xs font-medium flex items-center gap-2 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isLoadingMore ? <><Spinner size={11} /> Loading...</> : 'Load more'}
+                      {isLoadingMore ? <><Spinner size={11} /> {t.search.loading}</> : t.search.loadMore}
                     </button>
                   </div>
                 )}
@@ -1174,7 +1181,7 @@ export default function Page() {
           {/* Queue header */}
           <div className="flex items-center justify-between px-4 py-3.5 border-b border-line-subtle shrink-0">
             <div className="flex items-center gap-2">
-              <span className="text-[13px] font-semibold">Download queue</span>
+              <span className="text-[13px] font-semibold">{t.queue.title}</span>
               <span className="min-w-[20px] h-5 px-1.5 bg-brand text-brand-dark text-[10px] font-bold rounded-full flex items-center justify-center font-mono">
                 {queue.entries.length}
               </span>
@@ -1184,7 +1191,7 @@ export default function Page() {
                 onClick={queue.clear}
                 className="text-[11px] text-ink-tertiary hover:text-ink-secondary transition-colors px-2 py-1 rounded hover:bg-bg-hover"
               >
-                Clear
+                {t.queue.clear}
               </button>
             )}
           </div>
@@ -1195,7 +1202,7 @@ export default function Page() {
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-tertiary">
                 <ArchiveBoxIcon className="w-8 h-8 text-ink-secondary opacity-40" />
                 <span className="text-xs text-center leading-relaxed">
-                  Queue empty.<br />Add items from search.
+                  {t.queue.empty}<br />{t.queue.emptyHint}
                 </span>
               </div>
             ) : (
@@ -1203,7 +1210,7 @@ export default function Page() {
                 const lbl         = loaderLabel(entry.filters);
                 const isTransient = entry.status === 'pending' || entry.status === 'resolving';
                 const isError     = entry.status === 'error';
-                const slbl        = statusLabel(entry.status);
+                const slbl        = statusLabel(entry.status, t);
                 return (
                   <div
                     key={entry.queueKey}
@@ -1224,7 +1231,7 @@ export default function Page() {
                         />
                         {entry.isDependency && (
                           <span className="text-[9px] px-1 py-0.5 rounded bg-line-subtle text-ink-tertiary border border-line shrink-0">
-                            dep
+                            {t.queue.dep}
                           </span>
                         )}
                       </div>
@@ -1236,10 +1243,10 @@ export default function Page() {
                       {isError && (
                         <div className="text-[10px] text-red-err mt-0.5">
                           {entry.errorReason === 'no_compatible_version'
-                            ? 'No compatible version'
+                            ? t.errors.noCompatibleVersion
                             : entry.errorReason === 'threshold_exceeded'
-                            ? 'Batch download limit exceeded'
-                            : 'Network error'}
+                            ? t.errors.batchLimitExceeded
+                            : t.errors.networkError}
                         </div>
                       )}
                       {entry.resolved && !isTransient && (
@@ -1268,7 +1275,7 @@ export default function Page() {
                           <button
                             onClick={() => queue.retry(entry.queueKey)}
                             className="text-ink-secondary hover:text-brand w-5 h-5 flex items-center justify-center rounded hover:bg-bg-hover transition-colors"
-                            title="Try again"
+                            title={t.queue.retryTitle}
                           >
                             <ArrowPathIcon className="w-3.5 h-3.5" />
                           </button>
@@ -1276,7 +1283,7 @@ export default function Page() {
                         <button
                           onClick={() => queue.remove(entry.queueKey)}
                           className="text-ink-tertiary hover:text-ink-primary w-5 h-5 flex items-center justify-center rounded hover:bg-bg-hover transition-colors"
-                          title="Remove"
+                          title={t.queue.removeTitle}
                         >
                           <XMarkIcon className="w-3.5 h-3.5" />
                         </button>
@@ -1306,23 +1313,23 @@ export default function Page() {
                 onClick={() => downloadJSON(getExportState())}
                 disabled={isRestoring}
                 className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Export mod list as JSON"
+                title={t.footer.exportTitle}
               >
                 <ArrowUpTrayIcon className="w-[11px] h-[11px]" />
-                Export
+                {t.footer.export}
               </button>
               <button
                 onClick={() => importInputRef.current?.click()}
                 disabled={isRestoring}
                 className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Import mod list from JSON"
+                title={t.footer.importTitle}
               >
                 {isRestoring ? (
-                  <><Spinner size={11} /> Restoring...</>
+                  <><Spinner size={11} /> {t.footer.restoring}</>
                 ) : (
                   <>
                     <ArrowDownTrayIcon className="w-[11px] h-[11px]" />
-                    Import
+                    {t.footer.import}
                   </>
                 )}
               </button>
@@ -1330,17 +1337,17 @@ export default function Page() {
                 onClick={handleShare}
                 disabled={isRestoring}
                 className="flex-1 h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                title="Copy shareable URL"
+                title={t.footer.shareTitle}
               >
                 <LinkIcon className="w-[11px] h-[11px]" />
-                {copyFeedback ? 'Copied!' : 'Share'}
+                {copyFeedback ? t.footer.copied : t.footer.share}
               </button>
             </div>
 
             {/* Partial restore failure */}
             {failedCount !== null && failedCount > 0 && (
               <div className="mb-2 text-[10px] text-amber-400 text-center">
-                {failedCount} mod{failedCount > 1 ? 's' : ''} could not be loaded
+                {(failedCount > 1 ? t.footer.failedModsPlural : t.footer.failedMods).replace('{n}', String(failedCount))}
               </div>
             )}
 
@@ -1355,8 +1362,8 @@ export default function Page() {
                 className="w-full h-10 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 opacity-40 cursor-not-allowed"
               >
                 {queue.entries.filter(e => e.status === 'downloading').length === 1
-                  ? <><Spinner size={13} /> Downloading... {queue.zipProgress}%</>
-                  : <><Spinner size={13} /> Creating {archiveFormat === 'tar.gz' ? '.tar.gz' : 'ZIP'}... {queue.zipProgress}%</>
+                  ? <><Spinner size={13} /> {t.footer.downloading} {queue.zipProgress}%</>
+                  : <><Spinner size={13} /> {t.footer.creatingArchive.replace('{format}', archiveFormat === 'tar.gz' ? '.tar.gz' : 'ZIP')} {queue.zipProgress}%</>
                 }
               </button>
             ) : queue.readyCount > 1 ? (
@@ -1366,11 +1373,11 @@ export default function Page() {
                   className="flex-1 bg-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover active:scale-[0.98]"
                 >
                   <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
-                  Download {queue.readyCount} files
+                  {t.footer.downloadFiles.replace('{n}', String(queue.readyCount))}
                 </button>
                 <button
                   onClick={() => setArchiveFormat(f => f === 'zip' ? 'tar.gz' : 'zip')}
-                  title="Toggle archive format"
+                  title={t.footer.toggleFormat}
                   className="px-3 bg-brand text-brand-dark text-[10px] font-mono font-semibold border-l border-black/20 hover:bg-brand-hover transition-colors"
                 >
                   .{archiveFormat}
@@ -1383,7 +1390,7 @@ export default function Page() {
                 className="w-full h-10 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover hover:border-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
-                Download file
+                {t.footer.downloadFile}
               </button>
             )}
 
@@ -1409,10 +1416,10 @@ export default function Page() {
                   };
                   return (
                     <>
-                      {counts.pending > 0 && <span className="text-ink-tertiary">{counts.pending} resolving</span>}
-                      {counts.ready   > 0 && <span className="text-brand">{counts.ready} ready</span>}
-                      {counts.done    > 0 && <span className="text-brand">{counts.done} downloaded</span>}
-                      {counts.error   > 0 && <span className="text-red-err">{counts.error} error{counts.error > 1 ? 's' : ''}</span>}
+                      {counts.pending > 0 && <span className="text-ink-tertiary">{counts.pending} {t.summary.resolving}</span>}
+                      {counts.ready   > 0 && <span className="text-brand">{counts.ready} {t.summary.ready}</span>}
+                      {counts.done    > 0 && <span className="text-brand">{counts.done} {t.summary.downloaded}</span>}
+                      {counts.error   > 0 && <span className="text-red-err">{counts.error} {counts.error > 1 ? t.summary.errors : t.summary.error}</span>}
                     </>
                   );
                 })()}
@@ -1428,7 +1435,7 @@ export default function Page() {
       {addedSnackbar && (
         <div className="fixed bottom-16 md:hidden left-1/2 -translate-x-1/2 z-50 flex items-center gap-2.5 px-4 py-2.5 rounded-lg bg-brand/10 border border-brand/30 text-brand text-xs shadow-lg backdrop-blur-sm max-w-sm w-[calc(100%-2rem)]">
           <CheckCircleIcon className="w-4 h-4 shrink-0" />
-          <span className="flex-1">Added to queue</span>
+          <span className="flex-1">{t.snackbar.added}</span>
         </div>
       )}
 
@@ -1455,7 +1462,7 @@ export default function Page() {
           }`}
         >
           <MagnifyingGlassIcon className="w-[15px] h-[15px]" />
-          Search
+          {t.nav.search}
         </button>
         <button
           onClick={() => setMobilePanel('queue')}
@@ -1464,7 +1471,7 @@ export default function Page() {
           }`}
         >
           <ArrowDownTrayIcon className="w-[15px] h-[15px]" />
-          Queue
+          {t.nav.queue}
           {queue.entries.length > 0 && (
             <span className="min-w-[18px] h-[18px] px-1 bg-brand text-brand-dark text-[9px] font-bold rounded-full flex items-center justify-center font-mono">
               {queue.entries.length}

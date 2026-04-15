@@ -77,7 +77,7 @@ const _listeners = new Set<() => void>();
 export function captureEvent(e: DebugEvent): void {
   if (!IS_DEV) return;
   _events = [e, ..._events].slice(0, MAX_EVENTS);
-  _listeners.forEach(l => l());
+  queueMicrotask(() => _listeners.forEach(l => l()));
 }
 
 export function getEvents(): DebugEvent[] {
@@ -86,7 +86,7 @@ export function getEvents(): DebugEvent[] {
 
 export function clearEvents(): void {
   _events = [];
-  _listeners.forEach(l => l());
+  queueMicrotask(() => _listeners.forEach(l => l()));
 }
 
 export function subscribe(listener: () => void): () => void {
