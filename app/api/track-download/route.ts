@@ -39,7 +39,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const mods = body?.mods;
-  if (!Array.isArray(mods) || mods.length === 0) {
+  if (!Array.isArray(mods) || mods.length === 0 || mods.length > 250) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 

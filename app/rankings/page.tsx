@@ -1,19 +1,16 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import type { Metadata } from 'next';
-import type { RankingsResponse, RankingEntry } from '@/app/api/rankings/route';
+import { fetchRankings, type RankingEntry } from '@/lib/rankings';
 
 export const metadata: Metadata = {
   title: 'Rankings – Dynrinth',
   description: 'Most downloaded Minecraft mods through Dynrinth',
 };
 
-async function getRankings(): Promise<RankingsResponse> {
+async function getRankings() {
   try {
-    const base = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
-    const res  = await fetch(`${base}/api/rankings`, { next: { revalidate: 60 } });
-    if (!res.ok) return { rankings: [], total: 0 };
-    return res.json();
+    return await fetchRankings();
   } catch {
     return { rankings: [], total: 0 };
   }

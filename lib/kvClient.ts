@@ -12,7 +12,7 @@ export async function kvPipeline(commands: KvCommand[]): Promise<KvPipelineResul
   const cfg = getKvConfig();
   if (!cfg) return commands.map(() => ({ result: null }));
 
-  const res = await fetch(`${cfg.url}/pipeline`, {
+  const res = await fetch(`${cfg.url.replace(/\/$/, '')}/pipeline`, {
     method:  'POST',
     headers: {
       'Authorization': `Bearer ${cfg.token}`,
