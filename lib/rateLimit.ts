@@ -99,8 +99,8 @@ class RedisKvRateLimitStore implements RateLimitStore {
 const inMemoryStore = new InMemoryRateLimitStore();
 
 function createRateLimitStore(): RateLimitStore {
-  const url = process.env.KV_REST_API_URL;
-  const token = process.env.KV_REST_API_TOKEN;
+  const url   = process.env.KV_REST_API_URL   ?? process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.KV_REST_API_TOKEN ?? process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (process.env.NODE_ENV === 'production' && url && token) {
     return new RedisKvRateLimitStore(url, token);
