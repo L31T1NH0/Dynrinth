@@ -1,133 +1,34 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef, KeyboardEvent } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLocale, type Translations } from '@/lib/i18n';
-import { flushSync } from 'react-dom';
 import {
-  MagnifyingGlassIcon,
-  PlusIcon,
-  CheckIcon,
-  CheckCircleIcon,
-  XMarkIcon,
-  ArrowUpTrayIcon,
-  ArrowDownTrayIcon,
-  LinkIcon,
-  ArrowPathIcon,
-  ExclamationTriangleIcon,
-  InformationCircleIcon,
-  ArchiveBoxIcon,
-  CubeIcon,
-  CogIcon,
-  ServerStackIcon,
-  CircleStackIcon,
-  PhotoIcon,
-  SparklesIcon,
+  MagnifyingGlassIcon, PlusIcon, CheckIcon, CheckCircleIcon, XMarkIcon,
+  ArrowUpTrayIcon, ArrowDownTrayIcon, LinkIcon, ArrowPathIcon,
+  ExclamationTriangleIcon, InformationCircleIcon, ArchiveBoxIcon, CubeIcon,
   TrophyIcon,
 } from '@heroicons/react/24/outline';
 import { CloudArrowDownIcon } from '@heroicons/react/24/solid';
-import * as modrinthService from '@/lib/modrinth/service';
 import { TextClamp } from '@/components/TextClamp';
-import * as curseforgeService from '@/lib/curseforge/service';
-import type {
-  Filters,
-  Loader,
-  ShaderLoader,
-  PluginLoader,
-  ContentType,
-  Source,
-  SearchResult,
-  SearchPage,
-} from '@/lib/modrinth/types';
+import { CustomSelect } from '@/components/CustomSelect';
+import { PillToggle } from '@/components/PillToggle';
+import { Skeleton, configureBoneyard } from 'boneyard-js/react';
+import { DebugPanel } from '@/components/DebugPanel';
+import { captureEvent } from '@/lib/debugCapture';
 import { useQueue, type QueueItemStatus } from '@/hooks/useQueue';
 import { useRestoreMods } from '@/hooks/useRestoreMods';
+import { useFilters } from '@/hooks/useFilters';
+import { useSearch, PAGE_SIZE, MIN_QUERY_LENGTH } from '@/hooks/useSearch';
+import {
+  LOADERS, SHADER_LOADERS, PLUGIN_LOADERS, CONTENT_TYPES, CONTENT_TYPE_ICONS,
+} from '@/lib/filterConfig';
+import type { ContentType, Source } from '@/lib/modrinth/types';
 import {
   buildShareUrl, downloadJSON, readJSONFile, buildExportState, decodeState,
   type ModListState,
 } from '@/lib/stateUtils';
-import { CustomSelect } from '@/components/CustomSelect';
-import { Skeleton, configureBoneyard } from 'boneyard-js/react';
-import { DebugPanel } from '@/components/DebugPanel';
-import { captureEvent } from '@/lib/debugCapture';
 
 configureBoneyard({ color: '#1f2d3d', animate: 'pulse' });
-
-const PAGE_SIZE = modrinthService.PAGE_SIZE;
-const SEARCH_FALLBACK_LIMITS = {
-  maxTermSimplifications: 1,
-  maxVersionFallbacks: 2,
-} as const;
-const SEARCH_DEBOUNCE_MS = 400;
-const MIN_QUERY_LENGTH = 2;
-const SEARCH_CACHE_TTL_MS = 60_000;
-
-type SearchFallbackDebugMeta = {
-  requestId: number;
-  originalQuery: string;
-  executedQuery: string;
-  originalVersion: string;
-  usedVersion: string;
-  termSimplificationAttempts: number;
-  versionFallbackAttempts: number;
-  versionFallbackTried: string[];
-  strategy: 'none' | 'term-simplification' | 'version-fallback';
-  resultedInHits: boolean;
-};
-
-type SearchFetchContext = {
-  service: typeof modrinthService | typeof curseforgeService;
-  signal: AbortSignal;
-};
-
-// ─── UI configuration ─────────────────────────────────────────────────────────
-
-const LOADERS: { id: Loader; label: string }[] = [
-  { id: 'fabric', label: 'Fabric' },
-  { id: 'forge',  label: 'Forge'  },
-];
-
-const SHADER_LOADERS: { id: ShaderLoader; label: string }[] = [
-  { id: 'iris',     label: 'Iris'     },
-  { id: 'optifine', label: 'OptiFine' },
-];
-
-const PLUGIN_LOADERS: { id: PluginLoader; label: string }[] = [
-  { id: 'paper',  label: 'Paper'  },
-  { id: 'spigot', label: 'Spigot' },
-  { id: 'bukkit', label: 'Bukkit' },
-];
-
-const CONTENT_TYPES: { id: ContentType; usesLoader: boolean; sources: Source[] }[] = [
-  { id: 'mod',            usesLoader: true,  sources: ['modrinth', 'curseforge']          },
-  { id: 'plugin',         usesLoader: false, sources: ['modrinth']                        },
-  { id: 'datapack',       usesLoader: false, sources: ['modrinth', 'curseforge']          },
-  { id: 'resourcepack',   usesLoader: false, sources: ['modrinth', 'curseforge']          },
-  { id: 'shader',         usesLoader: false, sources: ['modrinth', 'curseforge']          },
-  { id: 'addon',          usesLoader: false, sources: ['curseforge-bedrock']              },
-  { id: 'map',            usesLoader: false, sources: ['curseforge-bedrock']              },
-  { id: 'texture-pack',   usesLoader: false, sources: ['curseforge-bedrock']              },
-  { id: 'script',         usesLoader: false, sources: ['curseforge-bedrock']              },
-  { id: 'skin',           usesLoader: false, sources: ['curseforge-bedrock']              },
-];
-
-/** Content types that belong exclusively to Bedrock. */
-const BEDROCK_CONTENT_TYPES = new Set<ContentType>(['addon', 'map', 'texture-pack', 'script', 'skin']);
-
-const CONTENT_TYPE_ICONS: Partial<Record<ContentType, React.ComponentType<React.SVGProps<SVGSVGElement>>>> = {
-  mod:          CogIcon,
-  plugin:       ServerStackIcon,
-  datapack:     CircleStackIcon,
-  resourcepack: PhotoIcon,
-  shader:       SparklesIcon,
-};
-
-const DEFAULT_FILTERS: Filters = {
-  source:       'modrinth',
-  version:      '',
-  contentType:  'mod',
-  loader:       'fabric',
-  shaderLoader: null,
-  pluginLoader: null,
-};
 
 // ─── Display helpers ──────────────────────────────────────────────────────────
 
@@ -141,7 +42,7 @@ function fmtSize(kb: number): string {
   return kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB';
 }
 
-function loaderLabel(f: Filters): string {
+function loaderLabel(f: import('@/lib/modrinth/types').Filters): string {
   if (f.contentType === 'mod')
     return LOADERS.find(l => l.id === f.loader)?.label ?? f.loader;
   if (f.contentType === 'shader' && f.shaderLoader)
@@ -151,19 +52,12 @@ function loaderLabel(f: Filters): string {
   return '';
 }
 
-/** User-facing label for queue item status. */
 function statusLabel(s: QueueItemStatus, t: Translations): string {
   if (s === 'resolving')   return t.status.resolving;
   if (s === 'pending')     return t.status.pending;
   if (s === 'downloading') return t.status.downloading;
   if (s === 'done')        return t.status.done;
   return '';
-}
-
-function sourceLabel(source: Source, t: Translations): string {
-  if (source === 'modrinth') return t.filters.sources.modrinth;
-  if (source === 'curseforge') return t.filters.sources.curseforge;
-  return t.filters.sources.bedrock;
 }
 
 function contentTypeLabel(contentType: ContentType, t: Translations): string {
@@ -222,37 +116,6 @@ function QueueStatusDot({ status }: { status: QueueItemStatus }) {
     return <span className={`${base} bg-line-strong animate-pulse`} />;
   // ready
   return <span className={`${base} bg-line-strong`} />;
-}
-
-// ─── Pill button (shared style for loader toggles) ────────────────────────────
-
-function PillToggle<T extends string>({
-  options,
-  active,
-  onToggle,
-}: {
-  options:  { id: T; label: string }[];
-  active:   T | null;
-  onToggle: (id: T) => void;
-}) {
-  return (
-    <div className="flex gap-1.5">
-      {options.map(o => (
-        <button
-          key={o.id}
-          onClick={() => onToggle(o.id)}
-          className={[
-            'h-7 px-3 rounded-md text-[11px] transition-all duration-150 font-medium',
-            active === o.id
-              ? 'bg-brand-glow border border-brand text-brand'
-              : 'bg-bg-surface text-ink-secondary hover:text-ink-primary hover:bg-bg-hover',
-          ].join(' ')}
-        >
-          {o.label}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 // ─── Search result skeleton (boneyard) ───────────────────────────────────────
@@ -315,64 +178,37 @@ function SearchResultSkeletons() {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function Page() {
-
   const t = useLocale();
+
+  const {
+    filters, versions, setFilters, lockRestoredVersion,
+    showMobileSourceSuggestion,
+    setSource, setVersion, setLoader, toggleShaderLoader, togglePluginLoader,
+    setContentType, dismissMobileSourceSuggestion, acceptMobileSourceSuggestion,
+  } = useFilters();
+
+  const search = useSearch(filters, versions);
+  const queue  = useQueue();
+  const { isRestoring, failedCount, restoreMods } = useRestoreMods(queue, setFilters);
+
   const sourceOptions = [
-    { value: 'modrinth', label: t.filters.sources.modrinth },
-    { value: 'curseforge', label: t.filters.sources.curseforge },
-    { value: 'curseforge-bedrock', label: t.filters.sources.bedrock },
+    { value: 'modrinth',           label: t.filters.sources.modrinth  },
+    { value: 'curseforge',         label: t.filters.sources.curseforge },
+    { value: 'curseforge-bedrock', label: t.filters.sources.bedrock    },
   ] as const;
-  const contentTypes = CONTENT_TYPES.map(ct => ({ ...ct, label: contentTypeLabel(ct.id, t) }));
 
-  // ── MC version list ───────────────────────────────────────────────────────
-  const [versions, setVersions] = useState<string[]>([]);
-
-  // ── Active filters ────────────────────────────────────────────────────────
-  const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
-
-  // ── Search state ──────────────────────────────────────────────────────────
-  const [searchQuery,   setSearchQuery]   = useState('');
-  const [isSearching,   setIsSearching]   = useState(false);
-  const [isLoadingMore, setIsLoadingMore] = useState(false);
-  const [hasError,      setHasError]      = useState(false);
-  const [results,       setResults]       = useState<SearchResult[]>([]);
-  const [offset,        setOffset]        = useState(0);
-  const [hasMore,       setHasMore]       = useState(false);
-  const activeRef = useRef<{ query: string; filters: Filters }>({
-    query: '', filters: DEFAULT_FILTERS,
-  });
-  const abortRef    = useRef<AbortController | null>(null);
-  const requestIdRef = useRef(0);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const cacheRef = useRef<Map<string, { expiresAt: number; page: SearchPage }>>(new Map());
-  const inflightRef = useRef<Map<string, Promise<SearchPage>>>(new Map());
-  const fallbackUsageByInteractionRef = useRef<Map<number, boolean>>(new Map());
-  const interactionIdRef = useRef(0);
-  const animatedIds = useRef<Set<string>>(new Set());
-  const filtersRef = useRef(filters);
-  filtersRef.current = filters;
-  const [searchDebugMeta, setSearchDebugMeta] = useState<SearchFallbackDebugMeta | null>(null);
-
-  // ── Queue ─────────────────────────────────────────────────────────────────
-  const queue = useQueue();
+  const contentTypes     = CONTENT_TYPES.map(ct => ({ ...ct, label: contentTypeLabel(ct.id, t) }));
+  const currentTypeInfo  = CONTENT_TYPES.find(ct => ct.id === filters.contentType)!;
+  const currentTypeLabel = contentTypeLabel(filters.contentType, t);
 
   // ── Restore (import / share URL) ─────────────────────────────────────────
-  const { isRestoring, failedCount, restoreMods } = useRestoreMods(queue, setFilters);
   const [pendingRestore, setPendingRestore] = useState<ModListState | null>(null);
   const [importError,    setImportError]    = useState<string | null>(null);
   const [copyFeedback,   setCopyFeedback]   = useState(false);
   const importInputRef = useRef<HTMLInputElement>(null);
-  // Holds a version locked by restore; prevents the versions-load effect from
-  // overwriting it with releases[0] when it re-fires due to a source change.
-  const restoredVersionRef = useRef<string | null>(null);
-  // Holds the version to preserve when switching between non-Bedrock sources.
-  const preservedVersionRef = useRef<string | null>(null);
-  // Holds a query coming from ?q= URL param (e.g. from Rankings page).
-  const initialQRef = useRef<string | null>(null);
 
   // ── Mobile panel ─────────────────────────────────────────────────────────
   const [mobilePanel, setMobilePanel] = useState<'search' | 'queue'>('search');
-  const [showMobileSourceSuggestion, setShowMobileSourceSuggestion] = useState(false);
 
   // ── Snackbar ──────────────────────────────────────────────────────────────
   const [snackbar, setSnackbar] = useState<string | null>(null);
@@ -385,431 +221,16 @@ export default function Page() {
   // ── Archive format ────────────────────────────────────────────────────────
   const [archiveFormat, setArchiveFormat] = useState<'zip' | 'tar.gz'>('zip');
 
-  // ── Persist user decisions ────────────────────────────────────────────────
-  useEffect(() => {
-    try { localStorage.setItem('modrinth-dl:filters', JSON.stringify(filters)); } catch { /* ignore */ }
-  }, [filters]);
-
   useEffect(() => {
     try { localStorage.setItem('modrinth-dl:archiveFormat', archiveFormat); } catch { /* ignore */ }
   }, [archiveFormat]);
 
-  // ── Restore persisted state from localStorage (client-only, runs before versions fetch) ──
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem('modrinth-dl:filters');
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<Filters>;
-        preservedVersionRef.current = parsed.version ?? null;
-        setFilters(prev => ({ ...prev, ...parsed, version: '' }));
-      }
-    } catch { /* ignore */ }
     try {
       const savedFormat = localStorage.getItem('modrinth-dl:archiveFormat');
       if (savedFormat === 'zip' || savedFormat === 'tar.gz') setArchiveFormat(savedFormat);
     } catch { /* ignore */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Fallback version tracking ─────────────────────────────────────────────
-  const [fallbackVersion, setFallbackVersion] = useState<string | null>(null);
-
-  // ── Load MC versions (re-fetched when source changes) ────────────────────
-
-  useEffect(() => {
-    let cancelled = false;
-    setVersions([]);
-    setFilters(prev => ({ ...prev, version: '' }));
-    const fetchVersions = filters.source === 'modrinth'
-      ? modrinthService.fetchGameVersions()
-      : curseforgeService.fetchGameVersions(filters.source);
-    fetchVersions
-      .then(releases => {
-        if (cancelled) return;
-        setVersions(releases);
-        if (releases.length) {
-          const locked = restoredVersionRef.current;
-          restoredVersionRef.current = null;
-          const preserved = preservedVersionRef.current;
-          preservedVersionRef.current = null;
-          const preferred = locked ?? (preserved && releases.includes(preserved) ? preserved : null) ?? releases[0];
-          setFilters(prev => ({ ...prev, version: preferred }));
-        }
-      })
-      .catch(() => { /* version list unavailable — search will stay paused */ });
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.source]);
-
-  // ── Core search ───────────────────────────────────────────────────────────
-
-  const buildSearchKey = useCallback((query: string, snapshot: Filters, startOffset: number) => {
-    const loaderScope = snapshot.contentType === 'mod'
-      ? snapshot.loader
-      : snapshot.contentType === 'shader'
-        ? snapshot.shaderLoader ?? ''
-        : snapshot.contentType === 'plugin'
-          ? snapshot.pluginLoader ?? ''
-          : '';
-    return [
-      snapshot.source,
-      snapshot.contentType,
-      snapshot.version,
-      loaderScope,
-      query,
-      String(startOffset),
-    ].join('|');
-  }, []);
-
-  const fetchSearchPage = useCallback(async (
-    query: string,
-    snapshot: Filters,
-    startOffset: number,
-    ctx: SearchFetchContext,
-    meta: { cacheHit: boolean },
-  ): Promise<SearchPage> => {
-    const key = buildSearchKey(query, snapshot, startOffset);
-    const now = Date.now();
-    const cached = cacheRef.current.get(key);
-    if (cached && cached.expiresAt > now) {
-      meta.cacheHit = true;
-      return cached.page;
-    }
-
-    const inflight = inflightRef.current.get(key);
-    if (inflight) {
-      meta.cacheHit = true;
-      return inflight;
-    }
-
-    const reqPromise = ctx.service
-      .searchProjects(query, snapshot, startOffset, ctx.signal)
-      .then(page => {
-        cacheRef.current.set(key, { expiresAt: Date.now() + SEARCH_CACHE_TTL_MS, page });
-        return page;
-      })
-      .finally(() => {
-        inflightRef.current.delete(key);
-      });
-
-    inflightRef.current.set(key, reqPromise);
-    return reqPromise;
-  }, [buildSearchKey]);
-
-  const runSearch = useCallback(async (
-    query:       string,
-    snapshot:    Filters,
-    startOffset: number,
-    append:      boolean,
-    interactionId: number,
-  ) => {
-    if (!snapshot.version) return;
-
-    const requestId = ++requestIdRef.current;
-    abortRef.current?.abort();
-    // Remove the inflight entry for this key so the aborted promise isn't reused
-    // by this request. Without this, the new ctrl's fetch would receive the
-    // AbortError from the previous ctrl and exit without setting results.
-    inflightRef.current.delete(buildSearchKey(query, snapshot, startOffset));
-    const ctrl = new AbortController();
-    abortRef.current = ctrl;
-
-    const t0 = performance.now();
-
-    if (!append) {
-      const contextChanged =
-        snapshot.source      !== activeRef.current.filters.source ||
-        snapshot.contentType !== activeRef.current.filters.contentType;
-      setIsSearching(true);
-      if (contextChanged) setResults([]);
-      setOffset(0);
-      activeRef.current = { query, filters: snapshot };
-      animatedIds.current.clear();
-      setFallbackVersion(null);
-      setSearchDebugMeta(null);
-    } else {
-      setIsLoadingMore(true);
-    }
-
-    try {
-      const service = snapshot.source === 'modrinth' ? modrinthService : curseforgeService;
-      const signal = ctrl.signal;
-      const fetchContext: SearchFetchContext = { service, signal };
-      const fetchMeta = { cacheHit: false };
-      let page      = await fetchSearchPage(query, snapshot, startOffset, fetchContext, fetchMeta);
-      let usedVersion = snapshot.version;
-      let executedQuery = query;
-      let termSimplificationAttempts = 0;
-      let versionFallbackAttempts = 0;
-      const versionFallbackTried: string[] = [];
-      let strategy: SearchFallbackDebugMeta['strategy'] = 'none';
-      const canUseFallback = !append && !fallbackUsageByInteractionRef.current.get(interactionId);
-
-      // Fallback 1: multi-word query with no hits → retry with longest single term (1 extra call)
-      if (
-        canUseFallback &&
-        !append &&
-        page.hits.length === 0 &&
-        query.includes(' ') &&
-        SEARCH_FALLBACK_LIMITS.maxTermSimplifications > 0
-      ) {
-        const term = query.split(/\s+/).sort((a, b) => b.length - a.length)[0];
-        termSimplificationAttempts = 1;
-        strategy = 'term-simplification';
-        executedQuery = term;
-        page = await fetchSearchPage(term, snapshot, 0, fetchContext, fetchMeta);
-        fallbackUsageByInteractionRef.current.set(interactionId, true);
-      }
-
-      // Fallback 2: still no results → try configured amount of immediately older versions
-      if (
-        canUseFallback &&
-        !fallbackUsageByInteractionRef.current.get(interactionId) &&
-        !append &&
-        page.hits.length === 0
-      ) {
-        const currentIdx = versions.indexOf(snapshot.version);
-        const start = currentIdx >= 0 ? currentIdx + 1 : 0;
-        const end = Math.min(start + SEARCH_FALLBACK_LIMITS.maxVersionFallbacks, versions.length);
-        for (let i = start; i < end; i++) {
-          const fallbackSnapshot = { ...snapshot, version: versions[i] };
-          versionFallbackAttempts += 1;
-          versionFallbackTried.push(versions[i]);
-          page = await fetchSearchPage(executedQuery, fallbackSnapshot, 0, fetchContext, fetchMeta);
-          if (page.hits.length > 0) {
-            usedVersion = versions[i];
-            setFallbackVersion(versions[i]);
-            strategy = 'version-fallback';
-            fallbackUsageByInteractionRef.current.set(interactionId, true);
-            break;
-          }
-        }
-      }
-
-      if (abortRef.current !== ctrl || requestIdRef.current !== requestId) return;
-
-      const durationMs = Math.round(performance.now() - t0);
-      const loaderScope = snapshot.contentType === 'mod' ? snapshot.loader
-        : snapshot.contentType === 'shader' ? snapshot.shaderLoader
-        : snapshot.contentType === 'plugin' ? snapshot.pluginLoader
-        : null;
-
-      if (append) {
-        setResults(prev => [...prev, ...page.hits]);
-        const next = startOffset + page.hits.length;
-        setOffset(next);
-        setHasMore(next < page.totalHits);
-        captureEvent({ type: 'load_more', ts: Date.now(), offset: startOffset, resultCount: page.hits.length, durationMs });
-      } else {
-        const appliedFilters = usedVersion !== snapshot.version
-          ? { ...snapshot, version: usedVersion }
-          : snapshot;
-        const commitResults = () => {
-          activeRef.current = { query: executedQuery, filters: appliedFilters };
-          setResults(page.hits);
-          setOffset(page.hits.length);
-          setHasMore(page.hits.length < page.totalHits);
-          setSearchDebugMeta({
-            requestId,
-            originalQuery: query,
-            executedQuery,
-            originalVersion: snapshot.version,
-            usedVersion,
-            termSimplificationAttempts,
-            versionFallbackAttempts,
-            versionFallbackTried,
-            strategy,
-            resultedInHits: page.hits.length > 0,
-          });
-        };
-        if (typeof document !== 'undefined' && 'startViewTransition' in document) {
-          (document as Document & { startViewTransition(cb: () => void): unknown })
-            .startViewTransition(() => flushSync(commitResults));
-        } else {
-          commitResults();
-        }
-
-        captureEvent({
-          type: 'search',
-          ts: Date.now(),
-          query: executedQuery,
-          source: snapshot.source,
-          version: usedVersion,
-          contentType: snapshot.contentType,
-          loader: loaderScope,
-          durationMs,
-          resultCount: page.hits.length,
-          totalHits: page.totalHits,
-          cacheHit: fetchMeta.cacheHit,
-          fallbackStrategy: strategy,
-          fallbackVersion: usedVersion !== snapshot.version ? usedVersion : null,
-          append: false,
-        });
-
-        if (page.hits.length === 0) {
-          captureEvent({
-            type: 'zero_results',
-            ts: Date.now(),
-            query: executedQuery,
-            source: snapshot.source,
-            version: snapshot.version,
-            contentType: snapshot.contentType,
-            fallbacksTried: versionFallbackTried,
-          });
-        }
-      }
-      setHasError(false);
-    } catch (e) {
-      if (abortRef.current !== ctrl || requestIdRef.current !== requestId) return;
-      if ((e as Error).name !== 'AbortError') {
-        setHasError(true);
-        captureEvent({
-          type: 'search_error',
-          ts: Date.now(),
-          query,
-          source: snapshot.source,
-          version: snapshot.version,
-          contentType: snapshot.contentType,
-          message: (e as Error).message ?? 'unknown',
-        });
-      }
-    } finally {
-      if (abortRef.current === ctrl) {
-        if (append) setIsLoadingMore(false);
-        else        setIsSearching(false);
-      }
-    }
-  }, [fetchSearchPage, versions]);
-
-  // Re-fetch on filter change; clears query to show browse mode.
-  // On first version load, checks for a ?q= param passed from external pages.
-  useEffect(() => {
-    if (!filters.version) return;
-    const q = initialQRef.current ?? '';
-    initialQRef.current = null;
-    setSearchQuery(q);
-    interactionIdRef.current += 1;
-    fallbackUsageByInteractionRef.current.delete(interactionIdRef.current);
-    void runSearch(q, filters, 0, false, interactionIdRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.source, filters.version, filters.contentType, filters.loader, filters.shaderLoader, filters.pluginLoader, runSearch]);
-
-  // ── Search actions ────────────────────────────────────────────────────────
-
-  const triggerSearch = useCallback(() => {
-    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
-    const trimmed = searchQuery.trim();
-    if (trimmed && trimmed.length < MIN_QUERY_LENGTH) return;
-    interactionIdRef.current += 1;
-    fallbackUsageByInteractionRef.current.delete(interactionIdRef.current);
-    void runSearch(trimmed, filters, 0, false, interactionIdRef.current);
-  }, [runSearch, searchQuery, filters]);
-
-  const handleQueryChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setSearchQuery(val);
-    if (!filters.version) return;
-    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
-    const trimmed = val.trim();
-    if (!trimmed) {
-      if (activeRef.current.query === '') return;
-      interactionIdRef.current += 1;
-      fallbackUsageByInteractionRef.current.delete(interactionIdRef.current);
-      void runSearch('', filters, 0, false, interactionIdRef.current);
-    } else {
-      debounceRef.current = setTimeout(() => {
-        debounceRef.current = null;
-        const next = val.trim();
-        if (!next || next.length < MIN_QUERY_LENGTH) return;
-        interactionIdRef.current += 1;
-        fallbackUsageByInteractionRef.current.delete(interactionIdRef.current);
-        void runSearch(next, filters, 0, false, interactionIdRef.current);
-      }, SEARCH_DEBOUNCE_MS);
-    }
-  }, [runSearch, filters]);
-
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => { if (e.key === 'Enter') triggerSearch(); },
-    [triggerSearch],
-  );
-
-  const clearSearch = useCallback(() => {
-    if (debounceRef.current) { clearTimeout(debounceRef.current); debounceRef.current = null; }
-    setSearchQuery('');
-    if (activeRef.current.query === '') return;
-    interactionIdRef.current += 1;
-    fallbackUsageByInteractionRef.current.delete(interactionIdRef.current);
-    void runSearch('', filters, 0, false, interactionIdRef.current);
-  }, [runSearch, filters]);
-
-  const loadMore = useCallback(() => {
-    const { query, filters: f } = activeRef.current;
-    interactionIdRef.current += 1;
-    fallbackUsageByInteractionRef.current.delete(interactionIdRef.current);
-    void runSearch(query, f, offset, true, interactionIdRef.current);
-  }, [runSearch, offset]);
-
-  useEffect(() => () => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    abortRef.current?.abort();
-  }, []);
-
-  // ── Filter setters ────────────────────────────────────────────────────────
-
-  const setSource = useCallback((s: Source) => {
-    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'source', from: filtersRef.current.source, to: s });
-    setFilters(prev => {
-      const toBedrockBoundary   = s === 'curseforge-bedrock' && !BEDROCK_CONTENT_TYPES.has(prev.contentType);
-      const fromBedrockBoundary = s !== 'curseforge-bedrock' &&  BEDROCK_CONTENT_TYPES.has(prev.contentType);
-      const contentType = toBedrockBoundary ? 'addon' : fromBedrockBoundary ? 'mod' : prev.contentType;
-      if (s !== 'curseforge-bedrock' && prev.source !== 'curseforge-bedrock' && prev.version) {
-        preservedVersionRef.current = prev.version;
-      }
-      return { ...prev, source: s, contentType };
-    });
-  }, []);
-
-  const dismissMobileSourceSuggestion = useCallback(() => {
-    setShowMobileSourceSuggestion(false);
-    try { localStorage.setItem('modrinth-dl:mobileSourceSuggestion', 'dismissed'); } catch { /* ignore */ }
-  }, []);
-
-  const acceptMobileSourceSuggestion = useCallback(() => {
-    setShowMobileSourceSuggestion(false);
-    try { localStorage.setItem('modrinth-dl:mobileSourceSuggestion', 'accepted'); } catch { /* ignore */ }
-    setSource('curseforge-bedrock');
-  }, [setSource]);
-
-  const setVersion = useCallback((v: string) => {
-    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'version', from: filtersRef.current.version, to: v });
-    setFilters(prev => ({ ...prev, version: v }));
-  }, []);
-
-  const setLoader = useCallback((l: Loader) => {
-    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'loader', from: filtersRef.current.loader, to: l });
-    setFilters(prev => ({ ...prev, loader: l }));
-  }, []);
-
-  const toggleShaderLoader = useCallback((sl: ShaderLoader) => {
-    const next = filtersRef.current.shaderLoader === sl ? null : sl;
-    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'shaderLoader', from: filtersRef.current.shaderLoader ?? 'none', to: next ?? 'none' });
-    setFilters(prev => ({ ...prev, shaderLoader: prev.shaderLoader === sl ? null : sl }));
-  }, []);
-
-  const togglePluginLoader = useCallback((pl: PluginLoader) => {
-    const next = filtersRef.current.pluginLoader === pl ? null : pl;
-    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'pluginLoader', from: filtersRef.current.pluginLoader ?? 'none', to: next ?? 'none' });
-    setFilters(prev => ({ ...prev, pluginLoader: prev.pluginLoader === pl ? null : pl }));
-  }, []);
-
-  const setContentType = useCallback((ct: ContentType) => {
-    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'contentType', from: filtersRef.current.contentType, to: ct });
-    setFilters(prev => ({
-      ...prev,
-      contentType:  ct,
-      shaderLoader: ct === 'shader' ? prev.shaderLoader : null,
-      pluginLoader: ct === 'plugin' ? prev.pluginLoader : null,
-    }));
   }, []);
 
   // ── Snackbar: warn when Modrinth + datapack is selected ──────────────────
@@ -821,43 +242,12 @@ export default function Page() {
     }
   }, [filters.source, filters.contentType]);
 
-  // ── Suggest Bedrock on first mobile access (skipped with share URL) ───────
-
-  useEffect(() => {
-    const hasShareData = new URLSearchParams(window.location.search).has('data');
-    if (hasShareData) return;
-    const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
-    if (!isMobile) return;
-    let decision: string | null = null;
-    try {
-      decision = localStorage.getItem('modrinth-dl:mobileSourceSuggestion');
-    } catch { /* ignore */ }
-    if (decision === 'accepted') {
-      setSource('curseforge-bedrock');
-      return;
-    }
-    if (decision === 'dismissed') return;
-    setShowMobileSourceSuggestion(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── ?q= pre-fill from external pages (e.g. Rankings) ────────────────────
-
-  useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get('q');
-    if (!q) return;
-    initialQRef.current = decodeURIComponent(q);
-    window.history.replaceState({}, '', window.location.pathname);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   // ── URL share detection (two-phase: mount → after versions load) ──────────
-
   useEffect(() => {
     const data = new URLSearchParams(window.location.search).get('data');
     if (!data) return;
     const state = decodeState(data);
-    if (!state) return; // leave URL intact — corrupt/unknown format
+    if (!state) return;
     setPendingRestore(state);
     window.history.replaceState({}, '', window.location.pathname);
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -865,47 +255,38 @@ export default function Page() {
 
   useEffect(() => {
     if (!versions.length || !pendingRestore) return;
-    restoredVersionRef.current = pendingRestore.version;
+    lockRestoredVersion(pendingRestore.version);
     restoreMods(pendingRestore);
     setPendingRestore(null);
-  }, [versions, pendingRestore, restoreMods]);
+  }, [versions, pendingRestore, restoreMods, lockRestoredVersion]);
 
   // ── Export / Import / Share ───────────────────────────────────────────────
 
   const getExportState = useCallback(() =>
     buildExportState(
-      filters.version,
-      filters.source,
-      filters.contentType,
+      filters.version, filters.source, filters.contentType,
       queue.entries.filter(e => !e.isDependency).map(e => e.id),
-      {
-        loader: filters.loader,
-        shaderLoader: filters.shaderLoader,
-        pluginLoader: filters.pluginLoader,
-      },
+      { loader: filters.loader, shaderLoader: filters.shaderLoader, pluginLoader: filters.pluginLoader },
     ),
-  [filters.version, filters.loader, filters.source, filters.contentType, filters.shaderLoader, filters.pluginLoader, queue.entries]);
+  [filters, queue.entries]);
 
   const handleImportFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    e.target.value = ''; // allow re-selecting the same file
+    e.target.value = '';
     try {
       const state = await readJSONFile(file);
       setImportError(null);
-      restoredVersionRef.current = state.version;
+      lockRestoredVersion(state.version);
       await restoreMods(state);
     } catch (err) {
       setImportError(translateImportError((err as Error).message, t));
     }
-  }, [restoreMods, t]);
+  }, [restoreMods, lockRestoredVersion, t]);
 
   const handleShare = useCallback(async () => {
     const url = buildShareUrl(getExportState());
-    if (!url) {
-      setImportError(t.snackbar.listTooLarge);
-      return;
-    }
+    if (!url) { setImportError(t.snackbar.listTooLarge); return; }
     setImportError(null);
     try {
       await navigator.clipboard.writeText(url);
@@ -917,12 +298,6 @@ export default function Page() {
     setTimeout(() => setCopyFeedback(false), 2000);
   }, [getExportState, t]);
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  const currentTypeInfo = CONTENT_TYPES.find(t => t.id === filters.contentType)!;
-  const currentTypeLabel = contentTypeLabel(filters.contentType, t);
-
-  /** True when this project is already present in the queue (any status). */
   const inQueue = useCallback(
     (id: string) => queue.entries.some(e => e.id === id),
     [queue.entries],
@@ -973,7 +348,7 @@ export default function Page() {
               <>
                 <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.loader}</p>
                 <div className="px-3.5">
-                  <PillToggle<Loader> options={LOADERS} active={filters.loader} onToggle={setLoader} />
+                  <PillToggle options={LOADERS} active={filters.loader} onToggle={setLoader} />
                 </div>
               </>
             )}
@@ -981,7 +356,7 @@ export default function Page() {
               <>
                 <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.renderer}</p>
                 <div className="px-3.5">
-                  <PillToggle<ShaderLoader> options={SHADER_LOADERS} active={filters.shaderLoader} onToggle={toggleShaderLoader} />
+                  <PillToggle options={SHADER_LOADERS} active={filters.shaderLoader} onToggle={toggleShaderLoader} />
                 </div>
               </>
             )}
@@ -989,7 +364,7 @@ export default function Page() {
               <>
                 <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.platform}</p>
                 <div className="px-3.5">
-                  <PillToggle<PluginLoader> options={PLUGIN_LOADERS} active={filters.pluginLoader} onToggle={togglePluginLoader} />
+                  <PillToggle options={PLUGIN_LOADERS} active={filters.pluginLoader} onToggle={togglePluginLoader} />
                 </div>
               </>
             )}
@@ -1048,7 +423,7 @@ export default function Page() {
                 </div>
                 <span className="text-[13px] font-semibold tracking-tight">dynrinth</span>
               </div>
-               {contentTypes.filter(ct => ct.sources.includes(filters.source)).map(ct => (
+              {contentTypes.filter(ct => ct.sources.includes(filters.source)).map(ct => (
                 <button
                   key={ct.id}
                   onClick={() => setContentType(ct.id)}
@@ -1083,13 +458,13 @@ export default function Page() {
                 width="w-28"
               />
               {currentTypeInfo.usesLoader && (
-                <PillToggle<Loader> options={LOADERS} active={filters.loader} onToggle={setLoader} />
+                <PillToggle options={LOADERS} active={filters.loader} onToggle={setLoader} />
               )}
               {filters.contentType === 'shader' && (
-                <PillToggle<ShaderLoader> options={SHADER_LOADERS} active={filters.shaderLoader} onToggle={toggleShaderLoader} />
+                <PillToggle options={SHADER_LOADERS} active={filters.shaderLoader} onToggle={toggleShaderLoader} />
               )}
               {filters.contentType === 'plugin' && (
-                <PillToggle<PluginLoader> options={PLUGIN_LOADERS} active={filters.pluginLoader} onToggle={togglePluginLoader} />
+                <PillToggle options={PLUGIN_LOADERS} active={filters.pluginLoader} onToggle={togglePluginLoader} />
               )}
             </div>
           </div>
@@ -1101,15 +476,15 @@ export default function Page() {
                 <MagnifyingGlassIcon className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ink-secondary" />
                 <input
                   type="text"
-                  value={searchQuery}
-                  onChange={handleQueryChange}
-                  onKeyDown={handleKeyDown}
+                  value={search.searchQuery}
+                  onChange={search.handleQueryChange}
+                  onKeyDown={search.handleKeyDown}
                   placeholder={t.search.placeholder}
                   className="w-full h-7 pl-8 pr-2 rounded text-ink-primary text-xs placeholder:text-ink-tertiary transition-colors focus:ring-2 focus:ring-brand focus:outline-none bg-bg-surface"
                 />
-                {searchQuery && (
+                {search.searchQuery && (
                   <button
-                    onClick={clearSearch}
+                    onClick={search.clearSearch}
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-ink-secondary hover:text-ink-primary"
                     title={t.search.clearTitle}
                   >
@@ -1118,11 +493,11 @@ export default function Page() {
                 )}
               </div>
               <button
-                onClick={triggerSearch}
-                disabled={isSearching || (!!searchQuery.trim() && searchQuery.trim().length < MIN_QUERY_LENGTH)}
+                onClick={search.triggerSearch}
+                disabled={search.isSearching || (!!search.searchQuery.trim() && search.searchQuery.trim().length < MIN_QUERY_LENGTH)}
                 className="h-7 w-7 rounded-md bg-brand border border-brand text-brand-dark flex items-center justify-center shrink-0 transition-all hover:bg-brand-hover active:scale-95 disabled:opacity-50"
               >
-                {isSearching
+                {search.isSearching
                   ? <Spinner size={11} />
                   : <MagnifyingGlassIcon className="w-[11px] h-[11px]" />
                 }
@@ -1133,23 +508,17 @@ export default function Page() {
               <div className="w-full md:hidden rounded-md border border-brand/30 bg-brand-glow px-3 py-2 text-xs text-ink-secondary flex items-center justify-between gap-2">
                 <span>{t.mobileSuggestion.text}</span>
                 <div className="flex items-center gap-2 shrink-0">
-                  <button
-                    onClick={dismissMobileSourceSuggestion}
-                    className="text-ink-secondary hover:text-ink-primary transition-colors"
-                  >
+                  <button onClick={dismissMobileSourceSuggestion} className="text-ink-secondary hover:text-ink-primary transition-colors">
                     {t.mobileSuggestion.keep}
                   </button>
-                  <button
-                    onClick={acceptMobileSourceSuggestion}
-                    className="h-6 px-2 rounded bg-brand border border-brand text-brand-dark hover:bg-brand-hover transition-colors"
-                  >
+                  <button onClick={acceptMobileSourceSuggestion} className="h-6 px-2 rounded bg-brand border border-brand text-brand-dark hover:bg-brand-hover transition-colors">
                     {t.mobileSuggestion.switch}
                   </button>
                 </div>
               </div>
             )}
 
-            {!!searchQuery.trim() && searchQuery.trim().length < MIN_QUERY_LENGTH && (
+            {!!search.searchQuery.trim() && search.searchQuery.trim().length < MIN_QUERY_LENGTH && (
               <div className="w-full text-[10px] text-ink-tertiary">
                 {t.search.minLength.replace('{n}', String(MIN_QUERY_LENGTH))}
               </div>
@@ -1159,58 +528,55 @@ export default function Page() {
           {/* Results list */}
           <div className="flex-1 overflow-y-auto relative" style={{ viewTransitionName: 'results-list' }}>
 
-            {fallbackVersion && !isSearching && (
+            {search.fallbackVersion && !search.isSearching && (
               <div className="px-4 py-2 bg-brand-glow border-b border-brand/30 text-brand text-xs flex items-center gap-2">
                 <InformationCircleIcon className="w-4 h-4 shrink-0" />
                 <span>{t.fallback.banner
                   .replace('{type}', currentTypeLabel.toLowerCase())
                   .replace('{version}', filters.version)
-                  .replace('{fallback}', fallbackVersion ?? '')
+                  .replace('{fallback}', search.fallbackVersion ?? '')
                 }</span>
               </div>
             )}
 
-            {isSearching && results.length === 0 && <SearchResultSkeletons />}
+            {search.isSearching && search.results.length === 0 && <SearchResultSkeletons />}
 
-            {!isSearching && hasError && (
+            {!search.isSearching && search.hasError && (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-secondary text-xs">
                 <ExclamationTriangleIcon className="w-8 h-8 text-ink-primary" />
                 {t.search.error}
               </div>
             )}
 
-            {!isSearching && !hasError && results.length === 0 && filters.version && (
+            {!search.isSearching && !search.hasError && search.results.length === 0 && filters.version && (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-secondary text-xs text-center">
                 <MagnifyingGlassIcon className="w-8 h-8 text-ink-secondary opacity-50" />
                 <span>
                   {t.search.noResultsFor}{' '}
                   <strong className="text-ink-primary">
-                    {activeRef.current.query || currentTypeLabel}
+                    {search.searchQuery || currentTypeLabel}
                   </strong>
-                  {activeRef.current.query && (
+                  {search.searchQuery && (
                     <><br />{t.search.withVersion} {filters.version}</>
                   )}
                 </span>
-                {searchDebugMeta && (
+                {search.searchDebugMeta && (
                   <div className="mt-2 rounded-md border border-line-subtle bg-bg-surface px-2 py-1 text-[10px] text-ink-tertiary">
-                    debug: strategy={searchDebugMeta.strategy}, termFallbacks={searchDebugMeta.termSimplificationAttempts}, versionFallbacks={searchDebugMeta.versionFallbackAttempts}
+                    debug: strategy={search.searchDebugMeta.strategy}, termFallbacks={search.searchDebugMeta.termSimplificationAttempts}, versionFallbacks={search.searchDebugMeta.versionFallbackAttempts}
                   </div>
                 )}
               </div>
             )}
 
-            {results.length > 0 && (
+            {search.results.length > 0 && (
               <div>
-                {results.map((item, i) => {
-                  const isNew    = i >= offset - PAGE_SIZE && !animatedIds.current.has(item.project_id);
+                {search.results.map((item, i) => {
+                  const isNew    = i >= search.offset - PAGE_SIZE && !search.animatedIds.current.has(item.project_id);
                   const queued   = inQueue(item.project_id);
                   const qEntry   = queue.entries.find(e => e.id === item.project_id);
                   const isActive = qEntry?.status === 'pending' || qEntry?.status === 'resolving';
 
-                  // Mark this item as animated
-                  if (isNew) {
-                    animatedIds.current.add(item.project_id);
-                  }
+                  if (isNew) search.animatedIds.current.add(item.project_id);
 
                   return (
                     <div
@@ -1291,14 +657,14 @@ export default function Page() {
                   );
                 })}
 
-                {(hasMore || isLoadingMore) && (
+                {(search.hasMore || search.isLoadingMore) && (
                   <div className="flex justify-center py-4">
                     <button
-                      onClick={loadMore}
-                      disabled={isLoadingMore}
+                      onClick={search.loadMore}
+                      disabled={search.isLoadingMore}
                       className="h-8 px-5 rounded-lg bg-bg-surface text-ink-secondary text-xs font-medium flex items-center gap-2 transition-all hover:text-ink-primary hover:bg-bg-hover disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isLoadingMore ? <><Spinner size={11} /> {t.search.loading}</> : t.search.loadMore}
+                      {search.isLoadingMore ? <><Spinner size={11} /> {t.search.loading}</> : t.search.loadMore}
                     </button>
                   </div>
                 )}
@@ -1371,7 +737,6 @@ export default function Page() {
                         )}
                       </div>
 
-                      {/* Status / metadata line */}
                       {isTransient && (
                         <div className="text-[10px] text-ink-tertiary mt-0.5">{slbl}</div>
                       )}
@@ -1392,7 +757,6 @@ export default function Page() {
                         </div>
                       )}
 
-                      {/* Per-item download progress bar */}
                       {entry.status === 'downloading' && entry.progress > 0 && (
                         <div className="mt-1 h-0.5 bg-line-subtle rounded-full overflow-hidden">
                           <div
@@ -1403,7 +767,6 @@ export default function Page() {
                       )}
                     </div>
 
-                    {/* Actions */}
                     {!queue.isDownloading && (
                       <div className="flex items-center gap-1 shrink-0">
                         {isError && (
@@ -1433,7 +796,6 @@ export default function Page() {
           {/* Download footer */}
           <div className="px-4 py-3.5 border-t border-line-subtle shrink-0">
 
-            {/* Hidden file input for import */}
             <input
               ref={importInputRef}
               type="file"
@@ -1479,14 +841,12 @@ export default function Page() {
               </button>
             </div>
 
-            {/* Partial restore failure */}
             {failedCount !== null && failedCount > 0 && (
               <div className="mb-2 text-[10px] text-amber-400 text-center">
                 {(failedCount > 1 ? t.footer.failedModsPlural : t.footer.failedMods).replace('{n}', String(failedCount))}
               </div>
             )}
 
-            {/* Import / share error */}
             {importError && (
               <div className="mb-2 text-[10px] text-red-err text-center">{importError}</div>
             )}
@@ -1529,7 +889,6 @@ export default function Page() {
               </button>
             )}
 
-            {/* ZIP progress bar */}
             {queue.isDownloading && (
               <div className="mt-2 h-1 bg-line-subtle rounded-full overflow-hidden">
                 <div
@@ -1539,15 +898,14 @@ export default function Page() {
               </div>
             )}
 
-            {/* Status summary below the button */}
             {!queue.isDownloading && queue.entries.length > 0 && (
               <div className="mt-2 flex gap-3 justify-center text-[10px] font-mono text-ink-tertiary">
                 {(() => {
                   const counts = {
-                    pending:  queue.entries.filter(e => e.status === 'pending' || e.status === 'resolving').length,
-                    ready:    queue.readyCount,
-                    done:     queue.entries.filter(e => e.status === 'done').length,
-                    error:    queue.entries.filter(e => e.status === 'error').length,
+                    pending: queue.entries.filter(e => e.status === 'pending' || e.status === 'resolving').length,
+                    ready:   queue.readyCount,
+                    done:    queue.entries.filter(e => e.status === 'done').length,
+                    error:   queue.entries.filter(e => e.status === 'error').length,
                   };
                   return (
                     <>
