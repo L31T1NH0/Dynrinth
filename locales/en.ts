@@ -160,6 +160,54 @@ export const en = {
     homeDescription:     'Easy search and download Minecraft mods from Modrinth & CurseForge',
     rankingsTitle:       'Rankings - Dynrinth',
     rankingsDescription: 'Most downloaded Minecraft content through Dynrinth',
+    modTitle:            'Dynrinth Mod',
+    modDescription:      'Install modpacks from a code with /dynrinth <code>',
+  },
+
+  modPage: {
+    source: 'Source',
+    hero: {
+      titleLine1:       'Install modpacks',
+      titleLine2:       'in one command',
+      description:      'Share a mod list as a 10-char code. Recipients type',
+      descriptionTail:  'in-game and everything downloads automatically.',
+    },
+    download:    'Download',
+    build:       'Build your modpack',
+    howItWorks:  'How it works',
+    callout: {
+      title: 'Don\'t have a code yet?',
+      body:  'Build your mod list on dynrinth.vercel.app and share it in seconds.',
+      open:  'Open',
+    },
+    steps: {
+      buildTitle:    'Build your list',
+      buildBody:     'Search and queue mods on dynrinth.vercel.app, then click "Share to Dynrinth".',
+      runTitle:      'Run the command',
+      runBody:       'Join any world or server and type /dynrinth followed by your 10-char code.',
+      restartTitle:  'Restart & play',
+      restartBody:   "Everything lands in /mods automatically. Restart the game and you're in.",
+    },
+    commands: {
+      title:   'Commands',
+      install: 'Install a modpack',
+      force:   'Skip version check',
+      remove:  'Uninstall a modpack',
+    },
+    platforms: {
+      title:    'Supported platforms',
+      fabric:   'Fabric',
+      neoForge: 'NeoForge',
+      paper:    'Paper',
+    },
+    chat: {
+      title:         'Dynrinth chat',
+      fetching:      'Fetching modpack...',
+      resolving:     'Resolving 12 mods for MC 1.21.1...',
+      downloadingA:  'Downloading (3/12) sodium-fabric-0.6.jar',
+      downloadingB:  'Downloading (9/12) lithium-fabric-0.14.jar',
+      done:          'Done! 12 mod(s) installed. Restart to activate.',
+    },
   },
 
   mobileSuggestion: {
@@ -169,9 +217,9 @@ export const en = {
   },
 
   minecraft: {
-    share:      'Minecraft',
+    share:      'Dynrinth',
     shareTitle: 'Generate code to install via mod',
-    prompt:     'Type in Minecraft:',
+    prompt:     'Type in Dynrinth:',
     command:    '/dynrinth {code}',
     copied:     'Copied!',
     generating: 'Generating...',

@@ -162,6 +162,54 @@ export const de: typeof en = {
     homeDescription:     'Minecraft-Mods von Modrinth und CurseForge einfach suchen und herunterladen',
     rankingsTitle:       'Rankings - Dynrinth',
     rankingsDescription: 'Am meisten heruntergeladene Minecraft-Inhalte ueber Dynrinth',
+    modTitle:            'Dynrinth Mod',
+    modDescription:      'Modpacks per Code mit /dynrinth <code> installieren',
+  },
+
+  modPage: {
+    source: 'Quelle',
+    hero: {
+      titleLine1:      'Modpacks installieren',
+      titleLine2:      'mit einem Befehl',
+      description:     'Teile eine Mod-Liste als 10-stelligen Code. Empfaenger geben',
+      descriptionTail: 'im Spiel ein und alles wird automatisch heruntergeladen.',
+    },
+    download:   'Download',
+    build:      'Modpack erstellen',
+    howItWorks: 'So funktioniert es',
+    callout: {
+      title: 'Noch keinen Code?',
+      body:  'Erstelle deine Mod-Liste auf dynrinth.vercel.app und teile sie in Sekunden.',
+      open:  'Oeffnen',
+    },
+    steps: {
+      buildTitle:   'Liste erstellen',
+      buildBody:    'Suche und stelle Mods auf dynrinth.vercel.app zusammen und klicke dann auf "Share to Dynrinth".',
+      runTitle:     'Befehl ausfuehren',
+      runBody:      'Betritt eine Welt oder einen Server und tippe /dynrinth gefolgt von deinem 10-stelligen Code.',
+      restartTitle: 'Neu starten & spielen',
+      restartBody:  'Alles landet automatisch in /mods. Spiel neu starten und loslegen.',
+    },
+    commands: {
+      title:   'Befehle',
+      install: 'Modpack installieren',
+      force:   'Versionspruefung ueberspringen',
+      remove:  'Modpack deinstallieren',
+    },
+    platforms: {
+      title:    'Unterstuetzte Plattformen',
+      fabric:   'Fabric',
+      neoForge: 'NeoForge',
+      paper:    'Paper',
+    },
+    chat: {
+      title:         'Dynrinth-Chat',
+      fetching:      'Modpack wird geladen...',
+      resolving:     '12 Mods fuer MC 1.21.1 werden aufgeloest...',
+      downloadingA:  'Herunterladen (3/12) sodium-fabric-0.6.jar',
+      downloadingB:  'Herunterladen (9/12) lithium-fabric-0.14.jar',
+      done:          'Fertig! 12 Mod(s) installiert. Zum Aktivieren neu starten.',
+    },
   },
 
   mobileSuggestion: {
@@ -171,9 +219,9 @@ export const de: typeof en = {
   },
 
   minecraft: {
-    share:      'Minecraft',
+    share:      'Dynrinth',
     shareTitle: 'Code zum Installieren per Mod generieren',
-    prompt:     'Im Minecraft eingeben:',
+    prompt:     'In Dynrinth eingeben:',
     command:    '/dynrinth {code}',
     copied:     'Kopiert!',
     generating: 'Wird generiert...',

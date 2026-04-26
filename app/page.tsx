@@ -1026,7 +1026,7 @@ export default function Page() {
                   </a>
                   <span className="text-line-strong">·</span>
                   <a
-                    href="/mod"
+                    href="/install"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-[10px] text-ink-tertiary hover:text-brand transition-colors"

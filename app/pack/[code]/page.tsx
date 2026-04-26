@@ -106,7 +106,7 @@ export default async function PackPage(
       </header>
 
       {/* ── Mod list ── */}
-      <div className="max-w-3xl w-full mx-auto px-0 sm:px-3 py-1.5 sm:py-3">
+      <div className="w-full px-0 py-1.5 sm:py-3">
         {state.mods.map(id => {
           const p = byId.get(id);
           return (

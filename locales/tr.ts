@@ -162,6 +162,54 @@ export const tr: typeof en = {
     homeDescription:     'Minecraft modlarını Modrinth ve CurseForge\'dan kolayca ara ve indir',
     rankingsTitle:       'Sıralamalar - Dynrinth',
     rankingsDescription: 'Dynrinth üzerinden en çok indirilen Minecraft içerikleri',
+    modTitle:            'Dynrinth Mod',
+    modDescription:      '/dynrinth <code> ile koddan modpack kur',
+  },
+
+  modPage: {
+    source: 'Kaynak',
+    hero: {
+      titleLine1:      'Modpack kur',
+      titleLine2:      'tek komutla',
+      description:     'Bir mod listesini 10 karakterlik kod olarak paylaş. Alan kişi',
+      descriptionTail: 'oyunda yazsın, her sey otomatik indirilsin.',
+    },
+    download:   'Indir',
+    build:      'Modpack olustur',
+    howItWorks: 'Nasil calisir',
+    callout: {
+      title: 'Henuz kodun yok mu?',
+      body:  'Mod listesini dynrinth.vercel.app uzerinde hazirla ve saniyeler icinde paylas.',
+      open:  'Ac',
+    },
+    steps: {
+      buildTitle:   'Listeyi olustur',
+      buildBody:    'dynrinth.vercel.app\'te mod ara ve kuyruga ekle, sonra "Share to Dynrinth"e tikla.',
+      runTitle:     'Komutu calistir',
+      runBody:      'Herhangi bir dunya veya sunucuya girip /dynrinth komutundan sonra 10 karakterlik kodunu yaz.',
+      restartTitle: 'Yeniden baslat ve oyna',
+      restartBody:  'Her sey otomatik olarak /mods klasorune iner. Oyunu yeniden baslat ve hazirsin.',
+    },
+    commands: {
+      title:   'Komutlar',
+      install: 'Modpack kur',
+      force:   'Surum kontrolunu atla',
+      remove:  'Modpack kaldir',
+    },
+    platforms: {
+      title:    'Desteklenen platformlar',
+      fabric:   'Fabric',
+      neoForge: 'NeoForge',
+      paper:    'Paper',
+    },
+    chat: {
+      title:         'Dynrinth sohbeti',
+      fetching:      'Modpack aliniyor...',
+      resolving:     'MC 1.21.1 icin 12 mod cozumleniyor...',
+      downloadingA:  'Indiriliyor (3/12) sodium-fabric-0.6.jar',
+      downloadingB:  'Indiriliyor (9/12) lithium-fabric-0.14.jar',
+      done:          'Bitti! 12 mod kuruldu. Etkinlestirmek icin yeniden baslat.',
+    },
   },
 
   mobileSuggestion: {
@@ -171,9 +219,9 @@ export const tr: typeof en = {
   },
 
   minecraft: {
-    share:      'Minecraft',
+    share:      'Dynrinth',
     shareTitle: 'Mod aracılığıyla kurulum için kod oluştur',
-    prompt:     'Minecraft\'ta yaz:',
+    prompt:     'Dynrinth\'te yaz:',
     command:    '/dynrinth {code}',
     copied:     'Kopyalandı!',
     generating: 'Oluşturuluyor...',
