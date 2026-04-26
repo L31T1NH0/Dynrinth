@@ -1,0 +1,18 @@
+<svg width="280" height="48" viewBox="0 0 280 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  
+  
+  <rect width="48" height="48" rx="12" fill="#111312"></rect>
+  <polygon points="24,6 39,15 39,33 24,42 9,33 9,15" fill="#1bd96a"></polygon>
+  <polygon points="24,13 33,18 24,23 15,18" fill="#0a0a0a"></polygon>
+  <polygon points="15,18 24,23 24,31 15,26" fill="#1a1a1a"></polygon>
+  <polygon points="33,18 24,23 24,31 33,26" fill="#131313"></polygon>
+  <line x1="24" y1="23" x2="24" y2="31" stroke="#1bd96a" stroke-width="0.5" opacity="0.35"></line>
+  <line x1="15" y1="18" x2="15" y2="26" stroke="#1bd96a" stroke-width="0.5" opacity="0.35"></line>
+  <line x1="33" y1="18" x2="33" y2="26" stroke="#1bd96a" stroke-width="0.5" opacity="0.35"></line>
+  <polyline points="15,26 24,31 33,26" fill="none" stroke="#1bd96a" stroke-width="0.5" opacity="0.35"></polyline>
+  
+  
+  <text x="62" y="33" font-family="&#39;JetBrains Mono&#39;, monospace" font-weight="700" font-size="22" fill="#f0f0f0">
+    <tspan fill="#1bd96a">/</tspan>dyn<tspan fill="#1bd96a">·</tspan>rinth
+  </text>
+</svg>

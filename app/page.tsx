@@ -8,8 +8,8 @@ import {
   ExclamationTriangleIcon, InformationCircleIcon, ArchiveBoxIcon, CubeIcon,
   TrophyIcon, ClipboardIcon,
 } from '@heroicons/react/24/outline';
-import { CloudArrowDownIcon } from '@heroicons/react/24/solid';
 import { TextClamp } from '@/components/TextClamp';
+import { Wordmark } from '@/components/Wordmark';
 import { CustomSelect } from '@/components/CustomSelect';
 import { PillToggle } from '@/components/PillToggle';
 import { Skeleton, configureBoneyard } from 'boneyard-js/react';
@@ -359,12 +359,9 @@ export default function Page() {
         <aside className="hidden md:flex w-[196px] flex-shrink-0 flex-col bg-bg-base border-r border-line-subtle overflow-hidden">
 
           {/* Logo */}
-          <div className="flex items-center gap-2.5 px-3.5 border-b border-line-subtle shrink-0 h-12">
-            <div className="w-6 h-6 rounded-md bg-brand flex items-center justify-center shrink-0">
-              <CloudArrowDownIcon className="w-3.5 h-3.5 text-brand-dark" />
-            </div>
-            <span className="text-[14px] font-semibold tracking-tight">dynrinth</span>
-          </div>
+          <a href="/" className="flex items-center px-3.5 border-b border-line-subtle shrink-0 h-12">
+            <Wordmark />
+          </a>
 
           {/* Filters */}
           <div className="py-2 shrink-0">
@@ -461,11 +458,8 @@ export default function Page() {
           {/* Mobile header: logo + content tabs + filters */}
           <div className="md:hidden border-b border-line-subtle shrink-0">
             <div className="flex items-center gap-5 px-5 py-2 overflow-x-auto scrollbar-none">
-              <div className="flex items-center gap-2 shrink-0">
-                <div className="w-5 h-5 rounded bg-brand flex items-center justify-center">
-                  <CloudArrowDownIcon className="w-3 h-3 text-brand-dark" />
-                </div>
-                <span className="text-[13px] font-semibold tracking-tight">dynrinth</span>
+              <div className="flex items-center shrink-0">
+                <Wordmark />
               </div>
               {contentTypes.filter(ct => ct.sources.includes(filters.source)).map(ct => (
                 <button
@@ -1021,14 +1015,25 @@ export default function Page() {
                     {mcCodeCopied ? t.minecraft.copied : <ClipboardIcon className="w-3.5 h-3.5" />}
                   </button>
                 </div>
-                <a
-                  href={`/pack/${mcCode}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[10px] text-ink-tertiary hover:text-brand transition-colors text-center"
-                >
-                  {t.minecraft.preview} ↗
-                </a>
+                <div className="flex items-center justify-center gap-4">
+                  <a
+                    href={`/pack/${mcCode}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-ink-tertiary hover:text-brand transition-colors"
+                  >
+                    {t.minecraft.preview} ↗
+                  </a>
+                  <span className="text-line-strong">·</span>
+                  <a
+                    href="/mod"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] text-ink-tertiary hover:text-brand transition-colors"
+                  >
+                    Get the mod ↗
+                  </a>
+                </div>
               </div>
             )}
 

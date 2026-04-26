@@ -7,7 +7,6 @@ import { useQueue } from '@/hooks/useQueue';
 import type { RankingEntry } from '@/app/api/rankings/route';
 import type { Filters, Loader, ShaderLoader } from '@/lib/modrinth/types';
 import { useLocale } from '@/lib/i18n';
-import { CloudArrowDownIcon } from '@heroicons/react/24/solid';
 import {
   CubeIcon,
   TrophyIcon,
@@ -22,6 +21,7 @@ import {
   SparklesIcon,
 } from '@heroicons/react/24/outline';
 import { CustomSelect } from '@/components/CustomSelect';
+import { Wordmark } from '@/components/Wordmark';
 import { PillToggle } from '@/components/PillToggle';
 import { LOADERS, SHADER_LOADERS } from '@/lib/filterConfig';
 import * as modrinthService from '@/lib/modrinth/service';
@@ -145,16 +145,8 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
       <aside className="hidden md:flex w-[196px] flex-shrink-0 flex-col bg-bg-base border-r border-line-subtle overflow-hidden">
 
         {/* Logo */}
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 px-3.5 border-b border-line-subtle shrink-0 h-12 group"
-        >
-          <div className="w-6 h-6 rounded-md bg-brand flex items-center justify-center shrink-0">
-            <CloudArrowDownIcon className="w-3.5 h-3.5 text-brand-dark" />
-          </div>
-          <span className="text-[14px] font-semibold tracking-tight group-hover:text-brand transition-colors">
-            dynrinth
-          </span>
+        <Link href="/" className="flex items-center px-3.5 border-b border-line-subtle shrink-0 h-12">
+          <Wordmark />
         </Link>
 
         {/* Filters */}
@@ -271,11 +263,8 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
         <header className="md:hidden border-b border-line-subtle shrink-0 bg-bg-base">
           {/* Row 1: logo + content type tabs + back */}
           <div className="flex items-center gap-5 px-5 py-2 overflow-x-auto scrollbar-none">
-            <Link href="/" className="flex items-center gap-2 shrink-0">
-              <div className="w-5 h-5 rounded bg-brand flex items-center justify-center">
-                <CloudArrowDownIcon className="w-3 h-3 text-brand-dark" />
-              </div>
-              <span className="text-[13px] font-semibold tracking-tight">dynrinth</span>
+            <Link href="/" className="shrink-0">
+              <Wordmark />
             </Link>
             {contentTypes.map(ct => (
               <button

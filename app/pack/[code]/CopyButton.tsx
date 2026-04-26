@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ClipboardIcon, CheckIcon } from '@heroicons/react/24/outline';
 
 export default function CopyButton({ command }: { command: string }) {
   const [copied, setCopied] = useState(false);
@@ -17,15 +18,17 @@ export default function CopyButton({ command }: { command: string }) {
   }
 
   return (
-    <div className="flex items-center gap-2 bg-bg-card border border-line rounded-lg px-3 py-2">
-      <span className="text-ink-secondary text-[12px] shrink-0">Type in Minecraft:</span>
-      <code className="text-brand font-mono text-[13px]">{command}</code>
-      <button
-        onClick={handleCopy}
-        className="ml-1 text-[11px] px-2 py-0.5 rounded bg-bg-hover text-ink-secondary hover:text-ink-primary transition-colors border border-line shrink-0"
-      >
-        {copied ? 'Copied!' : 'Copy'}
-      </button>
-    </div>
+    <button
+      onClick={handleCopy}
+      className="group flex items-center gap-2.5 rounded-lg bg-bg-card border border-line px-3 py-2 transition-colors hover:border-brand/40 hover:bg-brand-dark/30"
+    >
+      <code className="text-brand font-mono text-[12px] leading-none">{command}</code>
+      <span className="shrink-0 text-ink-tertiary group-hover:text-brand transition-colors">
+        {copied
+          ? <CheckIcon className="w-3.5 h-3.5 text-brand" />
+          : <ClipboardIcon className="w-3.5 h-3.5" />
+        }
+      </span>
+    </button>
   );
 }
