@@ -305,7 +305,7 @@ export default function Page() {
   const getExportState = useCallback(() =>
     buildExportState(
       filters.version, filters.source, filters.contentType,
-      queue.entries.filter(e => !e.isDependency).map(e => e.id),
+      queue.entries.map(e => e.id),
       { loader: filters.loader, shaderLoader: filters.shaderLoader, pluginLoader: filters.pluginLoader },
     ),
   [filters, queue.entries]);
