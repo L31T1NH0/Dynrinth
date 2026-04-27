@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import Image from 'next/image';
+import Link from 'next/link';
 import { validateCode, codeKey } from '@/lib/codes';
 import { kvGet } from '@/lib/kvClient';
 import { migrate } from '@/lib/stateSchema';
@@ -77,9 +78,9 @@ export default async function PackPage(
       {/* ── Header ── */}
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 px-3.5 sm:px-4 h-13 border-b border-line-subtle bg-bg-base/85 backdrop-blur-sm">
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-          <a href="/" title="Back to Dynrinth" className="shrink-0 opacity-95 hover:opacity-100 transition-opacity">
+          <Link href="/" title="Back to Dynrinth" className="shrink-0 opacity-95 hover:opacity-100 transition-opacity">
             <Image src="/dynrinth-icon.svg" alt="Dynrinth" width={28} height={28} className="rounded-md border border-line-subtle" />
-          </a>
+          </Link>
 
           <span className="text-line-strong hidden sm:block">·</span>
 

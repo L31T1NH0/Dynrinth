@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { useLocale, type Translations } from '@/lib/i18n';
 import {
   MagnifyingGlassIcon, PlusIcon, CheckIcon, CheckCircleIcon, XMarkIcon,
@@ -184,12 +185,22 @@ export default function Page() {
   } = useFilters();
 
   const queue  = useQueue();
+  const [hasHydrated, setHasHydrated] = useState(false);
+
+  useEffect(() => {
+    setHasHydrated(true);
+  }, []);
+
+  const renderedQueueEntries = hasHydrated ? queue.entries : [];
+  const renderedConflictWarnings = hasHydrated ? queue.conflictWarnings : [];
+  const renderedReadyCount = hasHydrated ? queue.readyCount : 0;
+  const queueEntryCount = renderedQueueEntries.length;
 
   const queueVersions = [...new Set(
-    queue.entries.map(e => e.filters.version).filter(Boolean),
+    renderedQueueEntries.map(e => e.filters.version).filter(Boolean),
   )];
   const hasMultipleVersions = queueVersions.length > 1;
-  const canExportMrpack = queue.entries.some(
+  const canExportMrpack = renderedQueueEntries.some(
     e => e.filters.source === 'modrinth' &&
       (e.status === 'ready' || e.status === 'done') &&
       !!e.resolved?.file.hashes,
@@ -214,6 +225,8 @@ export default function Page() {
   const contentTypes     = CONTENT_TYPES.map(ct => ({ ...ct, label: contentTypeLabel(ct.id, t) }));
   const currentTypeInfo  = CONTENT_TYPES.find(ct => ct.id === filters.contentType)!;
   const currentTypeLabel = contentTypeLabel(filters.contentType, t);
+  const canUseMinecraftShare = filters.source === 'modrinth';
+  const canUseMrpack = filters.source === 'modrinth' && canExportMrpack;
 
   // ── Restore (import / share URL) ─────────────────────────────────────────
   const [pendingRestore, setPendingRestore] = useState<ModListState | null>(null);
@@ -253,12 +266,12 @@ export default function Page() {
       const savedFormat = localStorage.getItem('modrinth-dl:archiveFormat');
       if (savedFormat === 'zip' || savedFormat === 'tar.gz' || savedFormat === 'mrpack') setArchiveFormat(savedFormat);
     } catch { /* ignore */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   useEffect(() => {
-    if (archiveFormat === 'mrpack' && !canExportMrpack) setArchiveFormat('zip');
-  }, [archiveFormat, canExportMrpack]);
+    if (archiveFormat === 'mrpack' && !canUseMrpack) setArchiveFormat('zip');
+  }, [archiveFormat, canUseMrpack]);
 
   // ── Snackbar: warn when Modrinth + datapack is selected ──────────────────
   useEffect(() => {
@@ -267,7 +280,7 @@ export default function Page() {
       setSnackbar(t.snackbar.datapacks);
       snackbarTimerRef.current = setTimeout(() => setSnackbar(null), 6000);
     }
-  }, [filters.source, filters.contentType]);
+  }, [filters.source, filters.contentType, t.snackbar.datapacks]);
 
   // ── URL share detection (two-phase: mount → after versions load) ──────────
   useEffect(() => {
@@ -277,7 +290,7 @@ export default function Page() {
     if (!state) return;
     setPendingRestore(state);
     window.history.replaceState({}, '', window.location.pathname);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   useEffect(() => {
@@ -326,6 +339,7 @@ export default function Page() {
   }, [getExportState, t]);
 
   const handleMinecraftShare = useCallback(async () => {
+    if (!canUseMinecraftShare) return;
     setMcCodeLoading(true);
     setMcCode(null);
     try {
@@ -342,7 +356,14 @@ export default function Page() {
     } finally {
       setMcCodeLoading(false);
     }
-  }, [getExportState, t]);
+  }, [canUseMinecraftShare, getExportState, t]);
+
+  useEffect(() => {
+    if (!canUseMinecraftShare) {
+      setMcCode(null);
+      setMcCodeCopied(false);
+    }
+  }, [canUseMinecraftShare]);
 
   const handleMcCodeCopy = useCallback(async (code: string) => {
     const cmd = t.minecraft.command.replace('{code}', code);
@@ -358,19 +379,16 @@ export default function Page() {
   }, [t]);
 
   const handleDownload = useCallback(() => {
-    if (archiveFormat === 'mrpack' && !canExportMrpack) return;
+    if (archiveFormat === 'mrpack' && !canUseMrpack) return;
     captureEvent({ type: 'queue_download', ts: Date.now(), itemCount: queue.readyCount, format: archiveFormat });
     if (archiveFormat === 'mrpack') {
       void queue.exportMrpack();
       return;
     }
     void queue.downloadZip(archiveFormat, separateByVersion ?? false);
-  }, [archiveFormat, canExportMrpack, queue, separateByVersion]);
+  }, [archiveFormat, canUseMrpack, queue, separateByVersion]);
 
-  const inQueue = useCallback(
-    (id: string) => queue.entries.some(e => e.id === id),
-    [queue.entries],
-  );
+  const inQueue = (id: string) => renderedQueueEntries.some(e => e.id === id);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -384,9 +402,9 @@ export default function Page() {
         <aside className="hidden md:flex w-[196px] flex-shrink-0 flex-col bg-bg-base border-r border-line-subtle overflow-hidden">
 
           {/* Logo */}
-          <a href="/" className="flex items-center px-3.5 border-b border-line-subtle shrink-0 h-12">
+          <Link href="/" className="flex items-center px-3.5 border-b border-line-subtle shrink-0 h-12">
             <Wordmark />
-          </a>
+          </Link>
 
           {/* Source/version/loader */}
           <div className="border-b border-line-subtle shrink-0">
@@ -494,8 +512,7 @@ export default function Page() {
 
             {filtersOpen && (
               <div className="pb-2">
-                <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pb-1.5">{t.filters.sort}</p>
-                <div className="px-3.5">
+                <div className="px-3.5 pt-1">
                   <CustomSelect
                     value={filters.sortIndex}
                     onChange={v => setSortIndex(v as import('@/lib/modrinth/types').SortIndex)}
@@ -503,11 +520,10 @@ export default function Page() {
                     width="w-full"
                   />
                 </div>
-
+                
                 {filters.source === 'modrinth' && filters.contentType === 'mod' && (
                   <>
-                    <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.clientSide} / {t.filters.serverSide}</p>
-                    <div className="px-3.5 flex gap-1.5">
+                    <div className="px-3.5 pt-2.5 flex gap-1.5">
                       <button
                         onClick={toggleClientSide}
                         className={[
@@ -885,10 +901,10 @@ export default function Page() {
             <div className="flex items-center gap-2">
               <span className="text-[13px] font-semibold">{t.queue.title}</span>
               <span className="min-w-[20px] h-5 px-1.5 bg-brand text-brand-dark text-[10px] font-bold rounded-full flex items-center justify-center font-mono">
-                {queue.entries.length}
+                {queueEntryCount}
               </span>
             </div>
-            {queue.entries.length > 0 && !queue.isDownloading && (
+            {queueEntryCount > 0 && !queue.isDownloading && (
               <button
                 onClick={queue.clear}
                 className="text-[11px] text-ink-tertiary hover:text-ink-secondary transition-colors px-2 py-1 rounded hover:bg-bg-hover"
@@ -983,7 +999,7 @@ export default function Page() {
               </div>
             )}
 
-            {queue.entries.length === 0 ? (
+            {queueEntryCount === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-ink-tertiary">
                 <ArchiveBoxIcon className="w-8 h-8 text-ink-secondary opacity-40" />
                 <span className="text-xs text-center leading-relaxed">
@@ -991,12 +1007,12 @@ export default function Page() {
                 </span>
               </div>
             ) : (
-              queue.entries.map((entry, i) => {
+              renderedQueueEntries.map((entry, i) => {
                 const lbl         = loaderLabel(entry.filters);
                 const isTransient = entry.status === 'pending' || entry.status === 'resolving';
                 const isError     = entry.status === 'error';
                 const slbl        = statusLabel(entry.status, t);
-                const conflicts   = queue.conflictWarnings.filter(
+                const conflicts   = renderedConflictWarnings.filter(
                   w => w.queueKeyA === entry.queueKey || w.queueKeyB === entry.queueKey,
                 );
                 return (
@@ -1161,19 +1177,21 @@ export default function Page() {
               </button>
             </div>
 
-            <button
-              onClick={handleMinecraftShare}
-              disabled={isRestoring || mcCodeLoading || queue.entries.length === 0}
-              className="w-full h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 mb-2.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
-              title={t.minecraft.shareTitle}
-            >
-              {mcCodeLoading
-                ? <><Spinner size={11} /> {t.minecraft.generating}</>
-                : <><CubeIcon className="w-[11px] h-[11px]" /> {t.minecraft.share}</>
-              }
-            </button>
+            {canUseMinecraftShare && (
+              <button
+                onClick={handleMinecraftShare}
+                disabled={hasHydrated ? (isRestoring || mcCodeLoading || queueEntryCount === 0) : undefined}
+                className="w-full h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 mb-2.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                title={t.minecraft.shareTitle}
+              >
+                {mcCodeLoading
+                  ? <><Spinner size={11} /> {t.minecraft.generating}</>
+                  : <><CubeIcon className="w-[11px] h-[11px]" /> {t.minecraft.share}</>
+                }
+              </button>
+            )}
 
-            {mcCode && (
+            {canUseMinecraftShare && mcCode && (
               <div className="mb-2.5 flex flex-col gap-1.5">
                 <div className="flex items-center gap-2 rounded-lg bg-bg-surface px-3 py-2">
                   <span className="text-[10px] text-ink-tertiary shrink-0">{t.minecraft.prompt}</span>
@@ -1219,13 +1237,13 @@ export default function Page() {
               <div className="mb-2 text-[10px] text-red-err text-center">{importError}</div>
             )}
 
-            {queue.conflictWarnings.length > 0 && !queue.isDownloading && (
+            {renderedConflictWarnings.length > 0 && !queue.isDownloading && (
               <div className="mb-2 flex items-center gap-1.5 text-[10px] text-amber-400">
                 <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0" />
-                {(queue.conflictWarnings.length > 1
+                {(renderedConflictWarnings.length > 1
                   ? t.queue.conflictBannerPlural
                   : t.queue.conflictBanner
-                ).replace('{n}', String(queue.conflictWarnings.length))}
+                ).replace('{n}', String(renderedConflictWarnings.length))}
               </div>
             )}
 
@@ -1261,19 +1279,19 @@ export default function Page() {
                   : <><Spinner size={13} /> {t.footer.creatingArchive.replace('{format}', archiveFormat === 'tar.gz' ? '.tar.gz' : 'ZIP')} {queue.zipProgress}%</>
                 }
               </button>
-            ) : queue.readyCount > 1 ? (
+            ) : renderedReadyCount > 1 ? (
               <div className="flex w-full h-10 rounded-lg overflow-hidden border border-brand">
                 <button
                   onClick={handleDownload}
                   className="flex-1 bg-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover active:scale-[0.98]"
                 >
                   <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
-                  {t.footer.downloadFiles.replace('{n}', String(queue.readyCount))}
+                  {t.footer.downloadFiles.replace('{n}', String(renderedReadyCount))}
                 </button>
                 <button
                   onClick={() => setArchiveFormat(f => {
                     if (f === 'zip') return 'tar.gz';
-                    if (f === 'tar.gz') return canExportMrpack ? 'mrpack' : 'zip';
+                    if (f === 'tar.gz') return canUseMrpack ? 'mrpack' : 'zip';
                     return 'zip';
                   })}
                   title={t.footer.toggleFormat}
@@ -1285,10 +1303,10 @@ export default function Page() {
             ) : (
               <button
                 onClick={handleDownload}
-                disabled={queue.readyCount === 0 || (archiveFormat === 'mrpack' && !canExportMrpack)}
+                disabled={hasHydrated ? (renderedReadyCount === 0 || (archiveFormat === 'mrpack' && !canUseMrpack)) : undefined}
                 className="w-full h-10 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover hover:border-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
+                  <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
                 {t.footer.downloadFile}
               </button>
             )}
@@ -1302,14 +1320,14 @@ export default function Page() {
               </div>
             )}
 
-            {!queue.isDownloading && queue.entries.length > 0 && (
+            {!queue.isDownloading && queueEntryCount > 0 && (
               <div className="mt-2 flex gap-3 justify-center text-[10px] font-mono text-ink-tertiary">
                 {(() => {
                   const counts = {
-                    pending: queue.entries.filter(e => e.status === 'pending' || e.status === 'resolving').length,
-                    ready:   queue.readyCount,
-                    done:    queue.entries.filter(e => e.status === 'done').length,
-                    error:   queue.entries.filter(e => e.status === 'error').length,
+                    pending: renderedQueueEntries.filter(e => e.status === 'pending' || e.status === 'resolving').length,
+                    ready:   renderedReadyCount,
+                    done:    renderedQueueEntries.filter(e => e.status === 'done').length,
+                    error:   renderedQueueEntries.filter(e => e.status === 'error').length,
                   };
                   return (
                     <>
@@ -1369,9 +1387,9 @@ export default function Page() {
         >
           <ArrowDownTrayIcon className="w-[15px] h-[15px]" />
           {t.nav.queue}
-          {queue.entries.length > 0 && (
+          {queueEntryCount > 0 && (
             <span className="min-w-[18px] h-[18px] px-1 bg-brand text-brand-dark text-[9px] font-bold rounded-full flex items-center justify-center font-mono">
-              {queue.entries.length}
+              {queueEntryCount}
             </span>
           )}
         </button>

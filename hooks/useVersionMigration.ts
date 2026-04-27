@@ -74,7 +74,7 @@ export function useVersionMigration(
       sourceVersion: mismatch[0].filters.version,
       modIds:        mismatch.map(e => e.id),
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [filters.version, filters.source, filters.contentType]);
 
   // Auto-dismiss when queue is emptied.

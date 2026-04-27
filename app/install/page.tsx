@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
+import Link from 'next/link';
 import {
   ArrowDownTrayIcon,
   CodeBracketIcon,
@@ -83,9 +84,9 @@ export default async function ModPage() {
 
       {/* ── Header ── */}
       <header className="flex items-center justify-between px-3.5 border-b border-line-subtle bg-bg-base shrink-0 h-12">
-        <a href="/" className="shrink-0">
+        <Link href="/" className="shrink-0">
           <Wordmark />
-        </a>
+        </Link>
         <a
           href={GITHUB_URL}
           target="_blank"
@@ -123,12 +124,12 @@ export default async function ModPage() {
             <ArrowDownTrayIcon className="w-4 h-4" />
             {t.modPage.download}
           </a>
-          <a
+          <Link
             href="/"
             className="h-9 px-5 rounded-lg bg-bg-surface border border-line text-ink-secondary text-[13px] font-medium flex items-center gap-2 hover:text-ink-primary hover:border-line-strong active:scale-95 transition-all"
           >
             {t.modPage.build}
-          </a>
+          </Link>
         </div>
 
         <ChatMock title={t.modPage.chat.title} lines={chatLines} fontClassName={pixelFont.className} />
@@ -207,13 +208,13 @@ export default async function ModPage() {
               {t.modPage.callout.body}
             </p>
           </div>
-          <a
+          <Link
             href="/"
             className="shrink-0 h-8 px-4 rounded-lg bg-brand text-brand-dark text-[12px] font-semibold flex items-center gap-1.5 hover:bg-brand-hover transition-colors"
           >
             {t.modPage.callout.open}
             <ArrowTopRightOnSquareIcon className="w-3.5 h-3.5" />
-          </a>
+          </Link>
         </div>
       </section>
 

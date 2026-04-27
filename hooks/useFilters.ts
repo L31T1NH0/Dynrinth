@@ -53,7 +53,7 @@ export function useFilters(): UseFiltersReturn {
         setFilters(prev => ({ ...prev, ...parsed, version: '' }));
       }
     } catch { /* ignore */ }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   // ── Load MC versions when source changes ─────────────────────────────────
@@ -79,7 +79,7 @@ export function useFilters(): UseFiltersReturn {
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [filters.source]);
 
   // ── Suggest Bedrock on first mobile access ────────────────────────────────

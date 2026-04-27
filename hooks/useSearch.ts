@@ -84,7 +84,7 @@ export function useSearch(filters: Filters, versions: string[]): UseSearchReturn
     if (!q) return;
     initialQueryRef.current = decodeURIComponent(q);
     window.history.replaceState({}, '', window.location.pathname);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, []);
 
   // ── Core search ───────────────────────────────────────────────────────────

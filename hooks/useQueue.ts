@@ -450,7 +450,7 @@ export function useQueue(): UseQueueReturn {
       void resolveEntry(entry, resolvingRef.current, dispatch, () => entriesRef.current);
     }
   // We intentionally only depend on entries to react to new pending items.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [state.entries]);
 
   // ── Public API ────────────────────────────────────────────────────────────
@@ -516,7 +516,7 @@ export function useQueue(): UseQueueReturn {
     );
 
     dispatch({ type: 'SET_DOWNLOADING', value: false });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [state.entries, state.isDownloading]);
 
   const readyCount = state.entries.filter(e => e.status === 'ready').length;
@@ -532,7 +532,7 @@ export function useQueue(): UseQueueReturn {
     const version = sample.filters.version;
     const loader  = sample.filters.loader as Loader;
     await downloadMrpack(modrinthEntries, version, loader);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+   
   }, [state.entries]);
 
   return {

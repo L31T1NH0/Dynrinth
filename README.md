@@ -1,197 +1,177 @@
-# Modrinth Downloader
+# Dynrinth
 
-Uma aplicação web moderna para buscar, resolver dependências e baixar mods, shaders, plugins e outros conteúdos do Modrinth e CurseForge de forma centralizada.
+Dynrinth e uma aplicacao web em `Next.js` para montar listas de mods e outros conteudos de Minecraft a partir de `Modrinth`, `CurseForge` e `CurseForge Bedrock`, resolver dependencias e baixar tudo em um unico arquivo.
 
-## ✨ Funcionalidades
+## Visao Geral
 
-- **Suporte a múltiplas fontes**: Busque e baixe conteúdos do Modrinth e CurseForge
-- **Busca inteligente**: Procure por mods, shaders, plugins, datapacks, resourcepacks e outros conteúdos
-- **Filtros avançados**: Filtre por versão do Minecraft, loader, versão de shader, plataforma de plugin, etc.
-- **Resolução de dependências**: Detecte automaticamente as dependências de cada projeto
-- **Download em lote**: Selecione múltiplos arquivos e baixe tudo em um único ZIP
-- **Acompanhamento de progresso**: Veja o progresso em tempo real para cada arquivo e progresso geral
-- **Interface intuitiva**: Design responsivo e moderno com Tailwind CSS
-- **Seletor de versões otimizado**: Menu de versões com altura limitada e scroll para melhor navegação
+- Busca projetos em `Modrinth`, `CurseForge` e `CurseForge Bedrock`.
+- Resolve dependencias obrigatorias automaticamente antes do download.
+- Mantem uma fila de itens com progresso individual e geral.
+- Exporta a fila como `.zip`, `.tar.gz` e, quando possivel, `.mrpack`.
+- Importa listas salvas em `JSON` e modpacks `.mrpack`.
+- Compartilha listas por URL compactada e por codigo curto de instalacao.
+- Exibe rankings de downloads quando ha backend KV configurado.
+- Suporta interface em `en`, `pt-BR`, `de` e `tr`.
 
-## 🚀 Início Rápido
+## Recursos
 
-### Requisitos
+- Fontes suportadas: `Modrinth`, `CurseForge` (Java) e `CurseForge Bedrock`.
+- Tipos de conteudo Java: `mod`, `plugin`, `datapack`, `resourcepack`, `shader`.
+- Tipos de conteudo Bedrock: `addon`, `map`, `texture-pack`, `script`, `skin`.
+- Filtros por versao do Minecraft.
+- Filtros por loader: `Fabric`, `Forge`, `NeoForge`, `Quilt`.
+- Filtros por renderer de shader: `Iris`, `OptiFine`.
+- Filtros por plataforma de plugin: `Paper`, `Spigot`, `Bukkit`, `Purpur`, `Folia`, `Velocity`, `BungeeCord`, `Sponge`.
+- Filtros de compatibilidade client/server para mods no Modrinth.
+- Compartilhamento por URL compactada.
+- Compartilhamento por codigo curto de 10 caracteres para o fluxo `/dynrinth <code>` quando o backend KV esta configurado.
+- Pagina `/rankings` para os downloads mais usados.
+- Pagina `/install` com instrucoes do mod/plugin companheiro do Dynrinth.
 
-- Node.js 20+
-- npm ou yarn
+## Stack
 
-### Instalação
+- `Next.js 16`
+- `React 19`
+- `TypeScript 6`
+- `Tailwind CSS 4`
+- `fflate` para geracao de ZIP e leitura de `.mrpack`
+- `lz-string` para compactar o estado na URL
+- `@vercel/analytics` e `@vercel/speed-insights`
+
+## Requisitos
+
+- `Node.js 20+`
+- `npm`
+
+## Instalacao
 
 ```bash
-# Clone o repositório
-git clone https://github.com/l31t1nh0/modrinth-downloader.git
-cd modrinth-downloader
-
-# Instale as dependências
+git clone https://github.com/L31T1NH0/Dynrinth.git
+cd Dynrinth
 npm install
 ```
 
-### Desenvolvimento
+## Variaveis De Ambiente
 
 ```bash
-# Inicie o servidor de desenvolvimento
+CURSEFORGE_API_KEY=
+KV_REST_API_URL=
+KV_REST_API_TOKEN=
+```
+
+- `CURSEFORGE_API_KEY`: necessario para habilitar buscas e resolucao de arquivos via CurseForge, incluindo Bedrock.
+- `KV_REST_API_URL` e `KV_REST_API_TOKEN`: opcionais, mas necessarios para persistir codigos curtos, alimentar rankings e usar rate limit com KV em producao.
+
+Sem `CURSEFORGE_API_KEY`, a aplicacao continua funcionando para `Modrinth`.
+
+## Scripts
+
+```bash
 npm run dev
-```
-
-A aplicação estará disponível em [http://localhost:3000](http://localhost:3000)
-
-### Build para Produção
-
-```bash
-# Build da aplicação
 npm run build
-
-# Inicie o servidor de produção
-npm start
+npm run start
 ```
 
-## 📁 Estrutura do Projeto
+Aplicacao local: `http://localhost:3000`
 
-```text
-modrinth-downloader/
-├── app/                     # Rotas e UI (App Router), incluindo API routes
-├── components/              # Componentes React reutilizáveis
-├── hooks/                   # Hooks customizados para estado e fluxo
-├── lib/                     # Serviços, utilitários e integrações externas
-├── package.json             # Scripts e dependências do projeto
-├── tsconfig.json            # Configuração TypeScript
-└── next.config.ts           # Configuração do Next.js
-```
+## Fluxos Principais
 
-Arquivos críticos:
+### Buscar E Baixar
 
-- `app/page.tsx`: tela principal e fluxo de busca/download.
-- `app/api/curseforge/route.ts`: proxy de busca para a API CurseForge.
-- `lib/modrinth/service.ts` e `lib/curseforge/service.ts`: integração com APIs externas.
-- `lib/download.ts`: preparo e empacotamento dos downloads em ZIP.
+1. Escolha a fonte.
+2. Defina versao, tipo de conteudo e filtros extras.
+3. Busque projetos.
+4. Adicione itens a fila.
+5. Baixe a fila como `.zip` ou `.tar.gz`.
 
-> Observação: a estrutura detalhada pode ser consultada via `rg --files`.
+### Exportar E Importar
 
-## 🛠 Tecnologias
+- Exporta `JSON` com o estado atual da lista.
+- Exporta `.mrpack` quando os itens forem do `Modrinth` e tiverem hashes disponiveis.
+- Importa arquivos `JSON` do proprio app.
+- Importa arquivos `.mrpack` com `modrinth.index.json`.
 
-- **Next.js 16** - Framework React moderno
-- **React 19** (`react` + `react-dom`) - Biblioteca UI
-- **TypeScript 6** - Tipagem estática
-- **Tailwind CSS 4** (`tailwindcss` + `@tailwindcss/postcss`) - Estilização utilitária
-- **PostCSS 8** - Pipeline CSS
-- **fflate 0** - Compressão ZIP em tempo real
-- **lz-string 1** - Compactação de strings para payloads/client state
-- **@heroicons/react 2** - Ícones SVG para interface
-- **API Modrinth v2** - Integração com Modrinth
-- **API CurseForge** - Integração com CurseForge
+### Compartilhar
 
-## 🔁 Matriz de Compatibilidade
+- URL com estado compactado em `?data=`.
+- Codigo curto via `POST /api/codes`.
+- Pagina publica do pacote em `/pack/[code]`.
 
-- **Runtime Node suportado**: **Node.js 20+**.
-- **Stack principal**: **Next.js 16** + **React 19** (`react-dom` 19).
-- **Última revisão da documentação**: **2026-04-04**.
+## Rotas
 
-## 📚 Como Usar
+- `/`: busca, filtros, fila, importacao, exportacao e download.
+- `/rankings`: ranking de downloads por fonte, tipo e versao.
+- `/install`: landing page do mod/plugin companheiro para instalacao por codigo.
+- `/mod`: redireciona permanentemente para `/install`.
+- `/pack/[code]`: pagina publica de uma lista compartilhada por codigo.
 
-### 1. Buscar Projetos
+## API Interna
 
-- Acesse a página inicial
-- Selecione a fonte: Modrinth ou CurseForge
-- Digite o nome do projeto que procura no campo de busca
-- Selecione o tipo de conteúdo: Mod, Shader, Plugin, Datapack, Resourcepack, etc.
-- Escolha a versão do Minecraft desejada
-- Configure filtros adicionais conforme o tipo de conteúdo (loader para mods, renderer para shaders, etc.)
-- Clique em "Buscar"
+- `GET /api/curseforge`: proxy com allowlist de endpoints e query params do CurseForge.
+- `GET /api/curseforge/download`: redirect validado para downloads do CurseForge.
+- `POST /api/codes`: valida o estado da lista e retorna um codigo curto; com KV configurado, persiste o estado para recuperacao posterior.
+- `GET /api/codes/[code]`: recupera uma lista salva a partir do codigo quando o backend KV esta disponivel.
+- `POST /api/track-download`: incrementa contadores usados no ranking quando o backend KV esta disponivel.
+- `GET /api/rankings`: retorna ranking agregado de downloads.
 
-### 2. Resolver Dependências
+## Operacao
 
-- Selecione um projeto da lista de resultados
-- As dependências serão automaticamente detectadas
-- Uma lista mostrará todos os arquivos necessários com suas dependências
+### Rate Limit
 
-### 3. Baixar em Lote
+- Janela atual: `400` requisicoes por `60s` por IP e por rota.
+- Em desenvolvimento, o armazenamento e em memoria.
+- Em producao, com `KV_REST_API_URL` e `KV_REST_API_TOKEN`, o rate limit usa KV remoto.
 
-- Selecione os arquivos que deseja baixar
-- Clique em "Baixar como ZIP"
-- Todos os arquivos serão compactados em um único ZIP
-- O navegador iniciará o download automaticamente
+### IP Do Cliente Atras De Proxy
 
-## 🔧 API Modrinth
-
-### Endpoints Utilizados
-
-- `GET /tag/game_version` - Listar versões do Minecraft
-- `GET /search` - Buscar projetos
-- `GET /project/{id}/version` - Obter versões de um projeto
-- `GET /project/{id}` - Obter informações do projeto
-
-**Base URL**: `https://api.modrinth.com/v2`
-
-## 📝 Configuração de Filtros
-
-### Fonte de Conteúdo
-- **Modrinth**: Acesso completo a todos os tipos de conteúdo
-- **CurseForge**: Suporte para mods e plugins
-
-### Tipos de Conteúdo e Filtros Específicos
-- **Mods**: Loader (Fabric, Forge)
-- **Shaders**: Renderer (Iris, OptiFine) - disponível apenas no Modrinth
-- **Plugins**: Plataforma (Paper, Spigot, Bukkit)
-- **Datapacks**: Apenas versão do Minecraft
-- **Resourcepacks**: Apenas versão do Minecraft
-
-
-## ⚙️ Operação: IP real atrás de proxy/CDN
-
-As rotas da CurseForge (`/api/curseforge` e `/api/curseforge/download`) aplicam rate limit por IP do cliente.
-Para isso, o backend considera **apenas headers de IP confiáveis** nesta ordem:
+O backend usa esta ordem para identificar o IP:
 
 1. `cf-connecting-ip`
-2. `true-client-ip`
-3. `x-real-ip`
-4. `x-forwarded-for` (primeiro IP da lista)
+2. `x-real-ip`
+3. `x-forwarded-for` (ultimo IP da cadeia)
 
-Configure sua borda para encaminhar o IP real e remover valores forjados vindos do cliente.
+Se nenhum header confiavel estiver presente, o valor usado e `unknown`.
 
-### Proxies/CDNs recomendados
+### Download Proxy Do CurseForge
 
-- **Cloudflare**: encaminhar `CF-Connecting-IP` (padrão da plataforma).
-- **Fastly / Akamai**: encaminhar `True-Client-IP` (quando habilitado).
-- **Nginx / Ingress Nginx / Traefik / HAProxy / ALB**: definir `X-Real-IP` e cadeia `X-Forwarded-For` corretamente.
-- **Vercel / Reverse proxy interno**: garantir que o proxy de borda preserve `X-Forwarded-For` e que a aplicação não fique exposta diretamente sem esse proxy.
+`/api/curseforge/download` aceita apenas hosts permitidos:
 
-> Se nenhum header confiável estiver presente, o sistema usa `unknown` como origem para rate limit.
+- `edge.forgecdn.net`
+- `mediafilez.forgecdn.net`
 
-## 🎨 Customização
+## Estrutura Do Projeto
 
-### Tema Tailwind
+```text
+Dynrinth/
+├── app/          # App Router, paginas e API routes
+├── components/   # Componentes de UI reutilizaveis
+├── hooks/        # Hooks de busca, filtros, fila e restauracao
+├── lib/          # Integracoes, serializacao, rate limit e utilitarios
+├── locales/      # Traducoes
+├── public/       # Assets estaticos
+├── package.json
+└── README.md
+```
 
-Edite `tailwind.config.ts` para customizar cores, fontes e outros estilos.
+Arquivos centrais:
 
-### Configuração Next.js
+- `app/page.tsx`: fluxo principal de busca, fila, importacao, exportacao e download.
+- `app/install/page.tsx`: pagina do mod/plugin companheiro do Dynrinth.
+- `app/rankings/RankingsClient.tsx`: interface do leaderboard.
+- `lib/modrinth/service.ts`: integracao direta com a API do Modrinth.
+- `lib/curseforge/service.ts`: integracao com o proxy server-side do CurseForge.
+- `lib/stateUtils.ts`: serializacao, compartilhamento por URL e import/export.
+- `lib/mrpack.ts`: leitura e geracao de `.mrpack`.
 
-Ajuste `next.config.ts` conforme necessário para suas necessidades específicas.
+## Observacoes De Desenvolvimento
 
-## 🐛 Tratamento de Erros
+- `npm run build` foi validado neste repositorio.
+- O script `npm run lint` presente em `package.json` ainda precisa ser ajustado para o fluxo atual do `Next.js 16`.
 
-- **Falha de rede**: A aplicação detecta erros de conectividade e exibe mensagens apropriadas
-- **Arquivo não disponível**: Se um arquivo não estiver disponível, ele é excluído do ZIP
-- **Versão incompatível**: Mensagens claras indicam quando não há versões compatíveis
+## Licenca
 
-## 📄 Licença
+Este projeto esta sob a licenca `MIT`. Veja `LICENSE`.
 
-Este projeto está licenciado sob a **MIT License**.  
-Consulte o arquivo [LICENSE](./LICENSE) para o texto completo.
+## Contribuicao
 
-## 🤝 Contribuições
-
-Contribuições são bem-vindas! Sinta-se livre para abrir issues e pull requests.
-Ao enviar contribuições, você concorda que seu código será disponibilizado sob a mesma **MIT License** deste projeto.
-
-### Checklist de PR
-
-- [ ] Atualizou documentação de stack se houve mudança de versão major.
-
-## 📮 Suporte
-
-Para questões ou problemas, abra uma issue no repositório.
+Issues e pull requests sao bem-vindos.
