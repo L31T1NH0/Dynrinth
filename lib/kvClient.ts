@@ -36,6 +36,7 @@ export async function kvGet(key: string): Promise<string | null> {
   return typeof r === 'string' ? r : null;
 }
 
-export async function kvSet(key: string, value: string): Promise<void> {
-  await kvPipeline([['SET', key, value]]);
+export async function kvSet(key: string, value: string, ttlSeconds?: number): Promise<void> {
+  const cmd: KvCommand = ttlSeconds ? ['SET', key, value, 'EX', ttlSeconds] : ['SET', key, value];
+  await kvPipeline([cmd]);
 }

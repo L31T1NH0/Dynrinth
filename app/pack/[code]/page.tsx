@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import { validateCode, codeKey } from '@/lib/codes';
 import { kvGet } from '@/lib/kvClient';
 import { migrate } from '@/lib/stateSchema';
 import CopyButton from './CopyButton';
 import { CubeIcon, ArrowTopRightOnSquareIcon } from '@heroicons/react/24/outline';
+import { fmtCount as fmtDownloads } from '@/lib/format';
 
 interface ModrinthProject {
   id:          string;
@@ -13,12 +15,6 @@ interface ModrinthProject {
   description: string;
   icon_url:    string | null;
   downloads:   number;
-}
-
-function fmtDownloads(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-  if (n >= 1_000)     return Math.round(n / 1_000) + 'K';
-  return String(n);
 }
 
 async function fetchProjects(ids: string[]): Promise<ModrinthProject[]> {
@@ -82,8 +78,7 @@ export default async function PackPage(
       <header className="sticky top-0 z-10 flex items-center justify-between gap-2 px-3.5 sm:px-4 h-13 border-b border-line-subtle bg-bg-base/85 backdrop-blur-sm">
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <a href="/" title="Back to Dynrinth" className="shrink-0 opacity-95 hover:opacity-100 transition-opacity">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/dynrinth-icon.svg" alt="Dynrinth" className="h-7 w-7 rounded-md border border-line-subtle" />
+            <Image src="/dynrinth-icon.svg" alt="Dynrinth" width={28} height={28} className="rounded-md border border-line-subtle" />
           </a>
 
           <span className="text-line-strong hidden sm:block">·</span>
@@ -114,13 +109,13 @@ export default async function PackPage(
 
               {/* Icon */}
               {p?.icon_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={p.icon_url}
                   alt={p.title}
-                  width={40}
-                  height={40}
+                  width={44}
+                  height={44}
                   className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl border border-line-subtle object-cover shrink-0 bg-bg-surface mt-0.5 shadow-sm"
+                  unoptimized
                 />
               ) : (
                 <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-bg-surface border border-line-subtle flex items-center justify-center shrink-0 mt-0.5">

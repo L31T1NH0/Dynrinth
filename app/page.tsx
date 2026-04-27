@@ -6,7 +6,7 @@ import {
   MagnifyingGlassIcon, PlusIcon, CheckIcon, CheckCircleIcon, XMarkIcon,
   ArrowUpTrayIcon, ArrowDownTrayIcon, LinkIcon, ArrowPathIcon,
   ExclamationTriangleIcon, InformationCircleIcon, ArchiveBoxIcon, CubeIcon,
-  TrophyIcon, ClipboardIcon,
+  TrophyIcon, ClipboardIcon, CommandLineIcon,
 } from '@heroicons/react/24/outline';
 import { TextClamp } from '@/components/TextClamp';
 import { Wordmark } from '@/components/Wordmark';
@@ -28,16 +28,9 @@ import {
   buildShareUrl, downloadJSON, readJSONFile, buildExportState, decodeState,
   type ModListState,
 } from '@/lib/stateUtils';
+import { fmtCount as fmtDownloads } from '@/lib/format';
 
 configureBoneyard({ color: '#1f2d3d', animate: 'pulse' });
-
-// ─── Display helpers ──────────────────────────────────────────────────────────
-
-function fmtDownloads(n: number): string {
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
-  if (n >= 1_000)     return Math.round(n / 1_000) + 'K';
-  return String(n);
-}
 
 function fmtSize(kb: number): string {
   return kb >= 1024 ? (kb / 1024).toFixed(1) + ' MB' : kb + ' KB';
@@ -440,7 +433,7 @@ export default function Page() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Rankings link */}
+          {/* Bottom links */}
           <div className="px-1.5 py-2 border-t border-line-subtle shrink-0">
             <a
               href="/rankings"
@@ -448,6 +441,14 @@ export default function Page() {
             >
               <TrophyIcon className="w-3 h-3 shrink-0" />
               Rankings
+            </a>
+            <a
+              href="/install"
+              className="flex items-center gap-2 px-3 py-1.5 rounded text-[12.5px] font-medium transition-all duration-100 border text-ink-secondary hover:text-ink-primary hover:bg-bg-hover border-transparent"
+            >
+              <CommandLineIcon className="w-3 h-3 shrink-0" />
+              {t.nav.installMod}
+              <span className="text-[9px] font-bold uppercase px-1 py-px rounded bg-brand text-brand-dark leading-none">New</span>
             </a>
           </div>
         </aside>
@@ -475,12 +476,21 @@ export default function Page() {
                   {ct.label}
                 </button>
               ))}
-              <a
-                href="/rankings"
-                className="ml-auto text-[11px] text-ink-secondary hover:text-ink-primary transition-colors whitespace-nowrap shrink-0"
-              >
-                {t.rankings.title}
-              </a>
+              <div className="ml-auto flex items-center gap-3 shrink-0">
+                <a
+                  href="/install"
+                  className="flex items-center gap-1 text-[11px] text-ink-secondary hover:text-ink-primary transition-colors whitespace-nowrap"
+                >
+                  {t.nav.installMod}
+                  <span className="text-[8px] font-bold uppercase px-1 py-px rounded bg-brand text-brand-dark leading-none">New</span>
+                </a>
+                <a
+                  href="/rankings"
+                  className="text-[11px] text-ink-secondary hover:text-ink-primary transition-colors whitespace-nowrap"
+                >
+                  {t.rankings.title}
+                </a>
+              </div>
             </div>
             <div className="flex items-center gap-3 px-5 py-2 flex-wrap">
               <CustomSelect

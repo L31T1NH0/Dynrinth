@@ -1,36 +1,26 @@
 import type { NextRequest } from 'next/server';
 
-/**
- * Política explícita de headers confiáveis para extração de IP real.
- *
- * Só confiamos em headers normalmente injetados por um proxy/CDN controlado
- * na borda. O app não deve ser exposto diretamente à internet com esses
- * headers aceitos sem um proxy de confiança à frente.
- */
-const TRUSTED_IP_HEADERS = [
-  'cf-connecting-ip',
-  'true-client-ip',
-  'x-real-ip',
-  'x-forwarded-for',
-] as const;
-
-function firstForwardedIp(value: string | null): string | null {
-  if (!value) return null;
-  const first = value
-    .split(',')[0]
-    ?.trim()
-    .replace(/^\[|\]$/g, '');
-
-  return first || null;
+function cleanIp(value: string): string {
+  return value.trim().replace(/^\[|\]$/g, '');
 }
 
+// cf-connecting-ip: set by Cloudflare, clients cannot forge it (CF strips it).
+// x-real-ip: set by Vercel/nginx infrastructure to the actual client IP.
+// x-forwarded-for: last entry is added by the last trusted proxy (most reliable
+//   when clients can prepend arbitrary values to earlier positions).
 export function getRequestIp(request: NextRequest): string {
-  for (const header of TRUSTED_IP_HEADERS) {
-    const candidate = firstForwardedIp(request.headers.get(header));
-    if (candidate) return candidate;
+  const cf = request.headers.get('cf-connecting-ip');
+  if (cf) return cleanIp(cf);
+
+  const realIp = request.headers.get('x-real-ip');
+  if (realIp) return cleanIp(realIp);
+
+  const forwarded = request.headers.get('x-forwarded-for');
+  if (forwarded) {
+    const parts = forwarded.split(',');
+    const last = parts[parts.length - 1];
+    if (last) return cleanIp(last);
   }
 
   return 'unknown';
 }
-
-export { TRUSTED_IP_HEADERS };

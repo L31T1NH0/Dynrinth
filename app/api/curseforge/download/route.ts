@@ -32,9 +32,24 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'URL host not allowed.' }, { status: 400 });
   }
 
+  // Vercel function response limit is 4.5 MB — redirect large files directly.
+  const MAX_PROXY_BYTES = 4 * 1024 * 1024;
+
+  const head = await fetch(rawUrl, { method: 'HEAD' }).catch(() => null);
+  const contentLength = head ? parseInt(head.headers.get('Content-Length') ?? '0', 10) : 0;
+  if (contentLength > MAX_PROXY_BYTES) {
+    return NextResponse.redirect(rawUrl, { status: 302 });
+  }
+
   const upstream = await fetch(rawUrl);
   if (!upstream.ok) {
     return new NextResponse(null, { status: upstream.status });
+  }
+
+  const upstreamLength = parseInt(upstream.headers.get('Content-Length') ?? '0', 10);
+  if (upstreamLength > MAX_PROXY_BYTES) {
+    upstream.body?.cancel();
+    return NextResponse.redirect(rawUrl, { status: 302 });
   }
 
   const headers = new Headers();

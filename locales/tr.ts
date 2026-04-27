@@ -88,8 +88,9 @@ export const tr: typeof en = {
   },
 
   nav: {
-    search: 'Ara',
-    queue:  'Kuyruk',
+    search:     'Ara',
+    queue:      'Kuyruk',
+    installMod: 'Modumu kur',
   },
 
   filters: {

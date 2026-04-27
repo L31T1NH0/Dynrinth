@@ -48,7 +48,7 @@ export function downloadJSON(state: ModListState): void {
   const url  = URL.createObjectURL(blob);
   const a    = Object.assign(document.createElement('a'), {
     href:     url,
-    download: `modlist-${state.version}-${state.loader}.json`,
+    download: `modlist-${state.version}-${state.loader ?? state.shaderLoader ?? state.pluginLoader ?? state.contentType}.json`,
   });
   a.click();
   URL.revokeObjectURL(url);

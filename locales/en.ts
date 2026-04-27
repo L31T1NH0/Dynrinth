@@ -86,8 +86,9 @@ export const en = {
   },
 
   nav: {
-    search: 'Search',
-    queue:  'Queue',
+    search:     'Search',
+    queue:      'Queue',
+    installMod: 'Install our mod',
   },
 
   filters: {

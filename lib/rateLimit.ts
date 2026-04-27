@@ -56,11 +56,14 @@ class RedisKvRateLimitStore implements RateLimitStore {
   }
 
   async checkAndConsume(key: string): Promise<RateLimitResult> {
-    // Upstash/Vercel KV REST supports pipelining multiple commands in one request.
+    const windowSec = Math.ceil(WINDOW_MS / 1000);
+    // SET NX EX initializes the key with TTL only if it doesn't exist yet,
+    // making the TTL atomic with key creation — no separate EXPIRE needed.
     const pipelineResponse = await this.request('/pipeline', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify([
+        ['SET', key, '0', 'EX', windowSec, 'NX'],
         ['INCR', key],
         ['PTTL', key],
       ]),
@@ -70,26 +73,18 @@ class RedisKvRateLimitStore implements RateLimitStore {
       throw new Error(`KV pipeline failed with HTTP ${pipelineResponse.status}`);
     }
 
-    const pipelineJson: Array<{ result: number | null; error?: string }> = await pipelineResponse.json();
-    const [incrResult, ttlResult] = pipelineJson;
+    const pipelineJson: Array<{ result: unknown; error?: string }> = await pipelineResponse.json();
+    const [, incrResult, ttlResult] = pipelineJson;
 
-    if (incrResult?.error || ttlResult?.error || typeof incrResult?.result !== 'number') {
+    if (incrResult?.error || typeof incrResult?.result !== 'number') {
       throw new Error('KV pipeline returned an invalid response.');
     }
 
-    const hits = incrResult.result;
-    const ttlMs = typeof ttlResult.result === 'number' ? ttlResult.result : -1;
-
-    if (hits === 1 || ttlMs < 0) {
-      const expireResponse = await this.request(`/expire/${encodeURIComponent(key)}/${Math.ceil(WINDOW_MS / 1000)}`);
-      if (!expireResponse.ok) {
-        throw new Error(`KV expire failed with HTTP ${expireResponse.status}`);
-      }
-    }
+    const hits  = incrResult.result as number;
+    const ttlMs = typeof ttlResult?.result === 'number' ? ttlResult.result : WINDOW_MS;
 
     if (hits > MAX_REQUESTS) {
-      const retryAfterMs = ttlMs > 0 ? ttlMs : WINDOW_MS;
-      return { allowed: false, retryAfter: Math.ceil(retryAfterMs / 1000) };
+      return { allowed: false, retryAfter: Math.ceil(ttlMs / 1000) };
     }
 
     return { allowed: true };

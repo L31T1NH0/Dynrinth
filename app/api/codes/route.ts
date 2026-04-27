@@ -31,7 +31,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   if (kvAvailable()) {
     const existing = await kvGet(key);
     if (!existing) {
-      await kvSet(key, JSON.stringify(state));
+      await kvSet(key, JSON.stringify(state), 365 * 24 * 3600);
     }
   }
 

@@ -8,9 +8,13 @@ import {
   CommandLineIcon,
   RocketLaunchIcon,
 } from '@heroicons/react/24/outline';
+import { Press_Start_2P } from 'next/font/google';
 import ChatMock from './ChatMock';
+import ScrollHint from './ScrollHint';
 import { Wordmark } from '@/components/Wordmark';
 import { detectLocaleFromLanguage, getTranslations } from '@/lib/i18n-core';
+
+const pixelFont = Press_Start_2P({ weight: '400', subsets: ['latin'], display: 'swap' });
 
 export async function generateMetadata(): Promise<Metadata> {
   const locale = detectLocaleFromLanguage((await headers()).get('accept-language'));
@@ -94,7 +98,7 @@ export default async function ModPage() {
       </header>
 
       {/* ── Hero ── */}
-      <section className="flex flex-col items-center text-center px-6 pt-12 pb-10 gap-5 max-w-2xl mx-auto w-full">
+      <section className="relative flex flex-col items-center text-center px-6 pt-12 pb-10 gap-5 max-w-2xl mx-auto w-full min-h-[calc(100dvh-3rem)]">
         <div className="flex flex-col items-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/dynrinth-wordmark.svg" alt="Dynrinth" className="h-12 w-auto block translate-x-9 -mt-3 mb-6" />
@@ -127,29 +131,32 @@ export default async function ModPage() {
           </a>
         </div>
 
-        <ChatMock title={t.modPage.chat.title} lines={chatLines} />
+        <ChatMock title={t.modPage.chat.title} lines={chatLines} fontClassName={pixelFont.className} />
+
+        {/* Fog + scroll arrow — anchored to bottom of hero */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 flex items-end justify-center pb-5 pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-t from-bg-base to-transparent" />
+          <ScrollHint />
+        </div>
       </section>
 
       <Divider />
 
       {/* ── How it works ── */}
-      <section className="flex flex-col items-center px-6 py-10 max-w-2xl mx-auto w-full gap-8">
+      <section id="how-it-works" className="flex flex-col items-center px-6 py-10 max-w-2xl mx-auto w-full gap-8">
         <p className="text-[9px] font-medium text-ink-tertiary uppercase tracking-widest self-start">
           {t.modPage.howItWorks}
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full">
           {steps.map(({ Icon, n, title, body }) => (
-            <div key={n} className="flex flex-col gap-3">
+            <div key={n} className="flex flex-col gap-2">
               <div className="flex items-center gap-2.5">
                 <div className="w-7 h-7 rounded-lg bg-brand-glow border border-brand/20 flex items-center justify-center shrink-0">
                   <Icon className="w-3.5 h-3.5 text-brand" />
                 </div>
-                <span className="text-[10px] font-mono text-ink-tertiary">{n}</span>
-              </div>
-              <div>
                 <p className="text-[13px] font-semibold">{title}</p>
-                <p className="text-[12px] text-ink-secondary mt-1 leading-relaxed">{body}</p>
               </div>
+              <p className="text-[12px] text-ink-secondary leading-relaxed">{body}</p>
             </div>
           ))}
         </div>

@@ -8,7 +8,7 @@ type ChatLine = {
   type: 'input' | 'info' | 'progress' | 'ok';
 };
 
-export default function ChatMock({ title, lines }: { title: string; lines: ChatLine[] }) {
+export default function ChatMock({ title, lines, fontClassName }: { title: string; lines: ChatLine[]; fontClassName?: string }) {
   const [visible, setVisible] = useState(0);
 
   useEffect(() => {
@@ -27,14 +27,14 @@ export default function ChatMock({ title, lines }: { title: string; lines: ChatL
         <span className="w-2.5 h-2.5 rounded-full bg-line-strong" />
         <span className="w-2.5 h-2.5 rounded-full bg-line-strong" />
         <span className="w-2.5 h-2.5 rounded-full bg-line-strong" />
-        <span className="ml-2 text-[10px] text-ink-tertiary font-mono">{title}</span>
+        <span className="ml-2 text-[8px] text-ink-tertiary font-mono">{title}</span>
       </div>
-      <div className="px-4 py-4 flex flex-col gap-1.5 min-h-[120px]">
+      <div className={`px-4 py-4 flex flex-col gap-1.5 h-[180px] overflow-hidden${fontClassName ? ` ${fontClassName}` : ''}`}>
         {lines.map((line, i) =>
           i < visible ? (
             <div
               key={i}
-              className="flex items-start gap-2.5 font-mono text-[12px] leading-snug text-left animate-fadeIn"
+              className="flex items-start gap-2.5 text-[8px] leading-relaxed text-left animate-fadeIn [text-shadow:1px_1px_0_rgba(0,0,0,0.8)]"
             >
               <span className={
                 line.type === 'ok'       ? 'text-brand shrink-0 w-3'        :

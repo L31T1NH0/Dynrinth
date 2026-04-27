@@ -88,8 +88,9 @@ export const de: typeof en = {
   },
 
   nav: {
-    search: 'Suche',
-    queue:  'Warteschlange',
+    search:     'Suche',
+    queue:      'Warteschlange',
+    installMod: 'Mod installieren',
   },
 
   filters: {

@@ -196,20 +196,39 @@ function persist(entries: QueueEntry[]): void {
   } catch { /* quota or private-browsing — silently ignore */ }
 }
 
+const VALID_SOURCES  = new Set(['modrinth', 'curseforge', 'curseforge-bedrock']);
+const VALID_STATUSES = new Set<QueueItemStatus>(['pending', 'resolving', 'ready', 'downloading', 'done', 'error']);
+
+function isValidEntry(e: unknown): e is QueueEntry {
+  if (typeof e !== 'object' || e === null) return false;
+  const entry = e as Record<string, unknown>;
+  const filters = entry.filters as Record<string, unknown> | undefined;
+  return (
+    typeof entry.id     === 'string' && entry.id.length > 0 &&
+    typeof entry.title  === 'string' &&
+    typeof filters      === 'object' && filters !== null &&
+    VALID_SOURCES.has(filters.source as string) &&
+    VALID_STATUSES.has(entry.status as QueueItemStatus)
+  );
+}
+
 function restore(): QueueEntry[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return [];
-    const entries: QueueEntry[] = JSON.parse(raw);
-    return entries.map(e => ({
-      ...e,
-      queueKey: e.queueKey ?? getCanonicalQueueKey(e),
-      progress: 0,
-      // Normalize transient states interrupted mid-session back to recoverable states.
-      status: e.status === 'downloading' ? 'ready'
-            : e.status === 'resolving'   ? 'pending'
-            : e.status,
-    }));
+    const parsed: unknown = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter(isValidEntry)
+      .map(e => ({
+        ...e,
+        queueKey: e.queueKey ?? getCanonicalQueueKey(e),
+        progress: 0,
+        // Normalize transient states interrupted mid-session back to recoverable states.
+        status: e.status === 'downloading' ? 'ready'
+              : e.status === 'resolving'   ? 'pending'
+              : e.status,
+      }));
   } catch {
     return [];
   }
@@ -384,9 +403,12 @@ export function useQueue(): UseQueueReturn {
   }, []);
 
   // ── Persist on every queue change ────────────────────────────────────────
+  // Skip during active downloads to avoid hundreds of synchronous localStorage
+  // writes per second from progress tick actions.
   useEffect(() => {
+    if (state.isDownloading) return;
     persist(state.entries);
-  }, [state.entries]);
+  }, [state.entries, state.isDownloading]);
 
   // ── Auto-resolve pending entries ──────────────────────────────────────────
   // resolvingRef tracks in-flight keys so the effect never starts duplicate

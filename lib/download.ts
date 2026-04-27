@@ -194,8 +194,8 @@ function buildTar(files: FetchedFile[]): Uint8Array {
   for (const f of files) {
     const header = new Uint8Array(512);
 
-    // name (100 bytes)
-    header.set(enc.encode(f.filename.slice(0, 99)), 0);
+    // name (100 bytes) — encode first, then slice bytes to avoid multi-byte char overflow
+    header.set(enc.encode(f.filename).subarray(0, 99), 0);
     // mode
     header.set(enc.encode('0000644\0'), 100);
     // uid / gid

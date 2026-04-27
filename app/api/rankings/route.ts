@@ -105,6 +105,11 @@ export async function GET(req: NextRequest): Promise<NextResponse<RankingsRespon
         .filter(r => r.source === sourceParam)
         .slice(0, limit)
         .map((r, i) => ({ ...r, rank: i + 1 }));
+      // total reflects the filtered set, not the global leaderboard cardinality
+      return NextResponse.json(
+        { rankings, total: rankings.length },
+        { headers: { 'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300' } },
+      );
     }
 
     return NextResponse.json(

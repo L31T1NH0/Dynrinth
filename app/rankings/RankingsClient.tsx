@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useQueue } from '@/hooks/useQueue';
 import type { RankingEntry } from '@/app/api/rankings/route';
-import type { Filters, Loader, ShaderLoader } from '@/lib/modrinth/types';
+import type { Filters, ShaderLoader } from '@/lib/modrinth/types';
 import { useLocale } from '@/lib/i18n';
 import {
   CubeIcon,
@@ -23,8 +23,9 @@ import {
 import { CustomSelect } from '@/components/CustomSelect';
 import { Wordmark } from '@/components/Wordmark';
 import { PillToggle } from '@/components/PillToggle';
-import { LOADERS, SHADER_LOADERS } from '@/lib/filterConfig';
+import { SHADER_LOADERS } from '@/lib/filterConfig';
 import * as modrinthService from '@/lib/modrinth/service';
+import { fmtCount } from '@/lib/format';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -53,12 +54,6 @@ function modPageUrl(entry: RankingEntry): string {
   return `https://www.curseforge.com/minecraft/mc-mods/${entry.id}`;
 }
 
-function fmtCount(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
-}
-
 function contentTypeLabel(
   id: RankingContentType,
   t: ReturnType<typeof useLocale>,
@@ -81,7 +76,6 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
   const [source,      setSource]      = useState<'modrinth' | 'curseforge'>('modrinth');
   const [contentType, setContentType] = useState<RankingContentType>('mod');
   const [version,     setVersion]     = useState('');
-  const [loader,      setLoader]      = useState<Loader>('fabric');
   const [shaderLoader, setShaderLoader] = useState<ShaderLoader | null>(null);
   const [versions,    setVersions]    = useState<string[]>([]);
 
@@ -129,11 +123,11 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
       source:       entry.source as Filters['source'],
       contentType,
       version,
-      loader,
+      loader:       'fabric',
       shaderLoader: contentType === 'shader' ? shaderLoader : null,
       pluginLoader: null,
     }),
-    [contentType, version, loader, shaderLoader],
+    [contentType, version, shaderLoader],
   );
 
   const currentLabel = contentTypeLabel(contentType, t);
@@ -171,14 +165,6 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
             />
           </div>
 
-          {contentType === 'mod' && (
-            <>
-              <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.loader}</p>
-              <div className="px-3.5">
-                <PillToggle<Loader> options={LOADERS} active={loader} onToggle={setLoader} />
-              </div>
-            </>
-          )}
           {contentType === 'shader' && (
             <>
               <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.renderer}</p>
@@ -302,9 +288,6 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
               options={versions.length ? versions.map(v => ({ value: v, label: v })) : [{ value: '', label: '...' }]}
               width="w-28"
             />
-            {contentType === 'mod' && (
-              <PillToggle<Loader> options={LOADERS} active={loader} onToggle={setLoader} />
-            )}
             {contentType === 'shader' && (
               <PillToggle<ShaderLoader>
                 options={SHADER_LOADERS}
@@ -435,7 +418,7 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
                           <button
                             onClick={() => queue.add(entry.id, entry.name ?? entry.id, entry.iconUrl, queueFilters(entry))}
                             className="no-ring w-8 h-8 rounded-lg text-xs flex items-center justify-center shrink-0 transition-all duration-150 leading-none self-center bg-bg-card text-ink-secondary hover:text-brand hover:bg-brand-glow active:scale-95"
-                            title={t.rankings.addToQueueTitle.replace('{version}', version).replace('{loader}', loader)}
+                            title={t.rankings.addToQueueTitle.replace('{version}', version).replace('{loader}', 'fabric')}
                           >
                             <PlusIcon className="w-3 h-3" />
                           </button>

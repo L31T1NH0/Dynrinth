@@ -82,7 +82,7 @@ export function migrateWithDetails(
       return { state: null, error: 'v1 "mods" must contain only strings' };
     }
     const v1     = obj as unknown as ModListStateV1;
-    const loader = v1.loader === 'forge' ? 'forge' : 'fabric';
+    const loader: Loader = v1.loader === 'forge' ? 'forge' : 'fabric';
     return { state: {
       formatVersion: CURRENT_FORMAT_VERSION,
       version: v1.version, source: v1.source, contentType: 'mod', loader, mods: v1.mods,
