@@ -26,6 +26,12 @@ export type QueueItemStatus =
   | 'done'        // successfully downloaded
   | 'error';      // resolution or download failed
 
+export interface ModLicense {
+  id:   string;
+  name: string;
+  url:  string | null;
+}
+
 export interface QueueEntry {
   queueKey:      string;
   id:            string;
@@ -39,6 +45,7 @@ export interface QueueEntry {
   progress:      number;
   isDependency:  boolean;
   dependencyOf?: string;
+  license?:      ModLicense;
 }
 
 export interface DependencyWarning {
@@ -71,6 +78,7 @@ type QueueAction =
   | { type: 'RETRY';                 queueKey: string }
   | { type: 'SET_STATUS';            queueKey: string; status: QueueItemStatus }
   | { type: 'SET_PROGRESS';          queueKey: string; progress: number }
+  | { type: 'SET_LICENSE';           queueKey: string; license: ModLicense }
   | { type: 'ADD_DEP_WARNING';       warning: DependencyWarning }
   | { type: 'CLEAR_DEP_WARNINGS';    parentQueueKey: string }
   | { type: 'ADD_CONFLICT_WARNING';  warning: ConflictWarning }
@@ -159,6 +167,8 @@ function reducer(state: QueueState, action: QueueAction): QueueState {
       return { ...state, entries: patchEntry(state.entries, action.queueKey, { status: action.status }) };
     case 'SET_PROGRESS':
       return { ...state, entries: patchEntry(state.entries, action.queueKey, { progress: action.progress }) };
+    case 'SET_LICENSE':
+      return { ...state, entries: patchEntry(state.entries, action.queueKey, { license: action.license }) };
     case 'ADD_DEP_WARNING':
       return { ...state, dependencyWarnings: [...state.dependencyWarnings, action.warning] };
     case 'CLEAR_DEP_WARNINGS':
@@ -261,6 +271,17 @@ async function resolveEntry(
     dispatch({ type: 'RESOLVE', queueKey: entry.queueKey, version: result.version });
     dispatch({ type: 'CLEAR_DEP_WARNINGS',     parentQueueKey: entry.queueKey });
     dispatch({ type: 'CLEAR_CONFLICT_WARNINGS', queueKey:      entry.queueKey });
+
+    if (entry.filters.source === 'modrinth') {
+      fetch(`https://api.modrinth.com/v2/project/${entry.id}`)
+        .then(r => r.ok ? r.json() : null)
+        .then((data: { license?: ModLicense } | null) => {
+          if (data?.license?.id) {
+            dispatch({ type: 'SET_LICENSE', queueKey: entry.queueKey, license: data.license });
+          }
+        })
+        .catch(() => { /* never block the queue */ });
+    }
 
     // Check for incompatible mods already in the queue.
     const currentEntries = getEntries();

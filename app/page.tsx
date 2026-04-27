@@ -883,6 +883,27 @@ export default function Page() {
                             {t.queue.dep}
                           </span>
                         )}
+                        {entry.license && (entry.license.id === 'arr' || entry.license.id === 'custom') && (
+                          entry.license.url
+                            ? (
+                              <a
+                                href={entry.license.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-[9px] px-1 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/30 shrink-0 hover:bg-red-500/20 transition-colors"
+                                title={entry.license.name}
+                              >
+                                {t.queue.restrictedLicense}
+                              </a>
+                            ) : (
+                              <span
+                                className="text-[9px] px-1 py-0.5 rounded bg-red-500/10 text-red-400 border border-red-500/30 shrink-0"
+                                title={entry.license.name}
+                              >
+                                {t.queue.restrictedLicense}
+                              </span>
+                            )
+                        )}
                       </div>
 
                       {isTransient && (
