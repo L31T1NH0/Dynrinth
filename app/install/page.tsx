@@ -90,10 +90,10 @@ export default async function ModPage() {
           href={GITHUB_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-[11px] text-ink-tertiary hover:text-ink-primary transition-colors"
+          aria-label="GitHub"
+          className="inline-flex items-center text-ink-tertiary hover:text-ink-primary transition-colors"
         >
           <CodeBracketIcon className="w-3.5 h-3.5" />
-          {t.modPage.source}
         </a>
       </header>
 

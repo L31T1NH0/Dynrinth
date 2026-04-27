@@ -9,7 +9,8 @@ import {
   downloadSingleFile,
   type DownloadItem,
 } from '@/lib/download';
-import type { FailureReason, Filters, ResolvedVersion } from '@/lib/modrinth/types';
+import { downloadMrpack } from '@/lib/mrpack';
+import type { FailureReason, Filters, Loader, ResolvedVersion } from '@/lib/modrinth/types';
 import { trackDownload } from '@/lib/tracking';
 
 function getService(filters: Filters) {
@@ -338,10 +339,11 @@ type ReadyEntry = QueueEntry & { resolved: ResolvedVersion };
  * Returns a map of queueKey → errorReason for any entries that failed.
  */
 async function runDownloadGroups(
-  groups:     Map<string, ReadyEntry[]>,
-  totalFiles: number,
-  format:     'zip' | 'tar.gz',
-  dispatch:   Dispatch<QueueAction>,
+  groups:            Map<string, ReadyEntry[]>,
+  totalFiles:        number,
+  format:            'zip' | 'tar.gz',
+  dispatch:          Dispatch<QueueAction>,
+  separateByVersion: boolean = false,
 ): Promise<Map<string, QueueEntry['errorReason']>> {
   let filesComplete = 0;
   const failedReasons = new Map<string, QueueEntry['errorReason']>();
@@ -350,6 +352,7 @@ async function runDownloadGroups(
     const items: DownloadItem[] = groupEntries.map(e => ({
       id:        e.queueKey,
       filename:  e.resolved.file.filename,
+      path:      separateByVersion ? `${e.filters.version}/${e.resolved.file.filename}` : undefined,
       url:       e.resolved.file.url,
       sizeBytes: e.resolved.file.size,
     }));
@@ -409,7 +412,8 @@ export interface UseQueueReturn {
   remove:             (queueKey: string) => void;
   retry:              (queueKey: string) => void;
   clear:              () => void;
-  downloadZip:        (format?: 'zip' | 'tar.gz') => Promise<void>;
+  downloadZip:        (format?: 'zip' | 'tar.gz', separateByVersion?: boolean) => Promise<void>;
+  exportMrpack:       () => Promise<void>;
 }
 
 export function useQueue(): UseQueueReturn {
@@ -472,7 +476,7 @@ export function useQueue(): UseQueueReturn {
     dispatch({ type: 'CLEAR' });
   }, []);
 
-  const downloadZip = useCallback(async (format: 'zip' | 'tar.gz' = 'zip') => {
+  const downloadZip = useCallback(async (format: 'zip' | 'tar.gz' = 'zip', separateByVersion = false) => {
     const ready = state.entries.filter(
       (e): e is ReadyEntry => e.status === 'ready' && e.resolved !== undefined,
     ).sort((a, b) => a.resolved.file.size - b.resolved.file.size);
@@ -489,7 +493,8 @@ export function useQueue(): UseQueueReturn {
       groups.get(key)!.push(entry);
     }
 
-    const failedReasons = await runDownloadGroups(groups, ready.length, format, dispatch);
+
+    const failedReasons = await runDownloadGroups(groups, ready.length, format, dispatch, separateByVersion);
 
     ready.forEach(e => {
       const reason = failedReasons.get(e.queueKey);
@@ -516,10 +521,24 @@ export function useQueue(): UseQueueReturn {
 
   const readyCount = state.entries.filter(e => e.status === 'ready').length;
 
+  const exportMrpack = useCallback(async () => {
+    const modrinthEntries = state.entries.filter(
+      e => e.filters.source === 'modrinth' &&
+        (e.status === 'ready' || e.status === 'done') &&
+        !!e.resolved?.file.hashes,
+    );
+    if (!modrinthEntries.length) return;
+    const sample  = modrinthEntries[0];
+    const version = sample.filters.version;
+    const loader  = sample.filters.loader as Loader;
+    await downloadMrpack(modrinthEntries, version, loader);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.entries]);
+
   return {
     entries: state.entries, dependencyWarnings: state.dependencyWarnings,
     conflictWarnings: state.conflictWarnings,
     isDownloading: state.isDownloading, zipProgress: state.zipProgress,
-    readyCount, add, remove, retry, clear, downloadZip,
+    readyCount, add, remove, retry, clear, downloadZip, exportMrpack,
   };
 }

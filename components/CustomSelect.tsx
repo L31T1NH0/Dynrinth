@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
 interface Option {
   value: string;
   label: string;
+  icon?: string;
 }
 
 interface CustomSelectProps {
@@ -43,7 +45,12 @@ export function CustomSelect({ value, onChange, options, placeholder, width = 'w
         onClick={() => setIsOpen(!isOpen)}
         className="w-full h-7 px-2.5 rounded text-ink-primary text-xs cursor-pointer transition-colors focus:ring-2 focus:ring-brand focus:outline-none bg-bg-surface hover:bg-bg-hover flex items-center justify-between"
       >
-        <span>{displayLabel}</span>
+        <span className="min-w-0 flex items-center gap-1.5">
+          {selectedOption?.icon && (
+            <Image src={selectedOption.icon} alt="" width={14} height={14} className="w-3.5 h-3.5 shrink-0 rounded-[3px]" />
+          )}
+          <span className="truncate">{displayLabel}</span>
+        </span>
         <ChevronDownIcon
           className={`w-3.5 h-3.5 transition-transform ${isOpen ? 'rotate-180' : ''}`}
         />
@@ -67,7 +74,12 @@ export function CustomSelect({ value, onChange, options, placeholder, width = 'w
                   : 'text-ink-primary hover:bg-bg-hover'
               }`}
             >
-              {opt.label}
+              <span className="flex items-center gap-1.5">
+                {opt.icon && (
+                  <Image src={opt.icon} alt="" width={14} height={14} className="w-3.5 h-3.5 shrink-0 rounded-[3px]" />
+                )}
+                <span>{opt.label}</span>
+              </span>
             </button>
           ))}
         </div>

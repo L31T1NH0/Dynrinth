@@ -5,7 +5,7 @@ import {
   CURRENT_FORMAT_VERSION,
   type ModListState,
 } from '@/lib/stateSchema';
-import { isModrinthIndex, fromModrinthIndex } from '@/lib/mrpack';
+import { isModrinthIndex, fromModrinthIndex, readMrpackFile } from '@/lib/mrpack';
 
 // Re-export the canonical state type so callers don't need to know about stateSchema.
 export type { ModListState, ModListStateV2 } from '@/lib/stateSchema';
@@ -89,6 +89,12 @@ export function readJSONFile(file: File): Promise<ModListState> {
     reader.onerror = () => reject(new Error('File read failed.'));
     reader.readAsText(file);
   });
+}
+
+export function readStateFile(file: File): Promise<ModListState> {
+  const isMrpack = /\.mrpack$/i.test(file.name);
+  if (isMrpack) return readMrpackFile(file);
+  return readJSONFile(file);
 }
 
 // ─── Builder ──────────────────────────────────────────────────────────────────

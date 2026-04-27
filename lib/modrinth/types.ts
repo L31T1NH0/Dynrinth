@@ -1,9 +1,10 @@
 // ─── Filter domain ────────────────────────────────────────────────────────────
 
 export type Source       = 'modrinth' | 'curseforge' | 'curseforge-bedrock';
-export type Loader       = 'fabric' | 'forge';
+export type Loader       = 'fabric' | 'forge' | 'neoforge' | 'quilt';
 export type ShaderLoader = 'iris' | 'optifine';
-export type PluginLoader = 'bukkit' | 'spigot' | 'paper';
+export type PluginLoader = 'bukkit' | 'spigot' | 'paper' | 'purpur' | 'folia' | 'velocity' | 'bungeecord' | 'sponge';
+export type SortIndex    = 'relevance' | 'downloads' | 'follows' | 'updated' | 'newest';
 export type ContentType  =
   | 'mod' | 'plugin' | 'datapack' | 'resourcepack' | 'shader'  // Java / Modrinth
   | 'addon' | 'map' | 'texture-pack' | 'script' | 'skin';      // Bedrock (CurseForge)
@@ -23,6 +24,9 @@ export interface Filters {
   loader:       Loader;              // applied when contentType === 'mod'
   shaderLoader: ShaderLoader | null; // applied when contentType === 'shader'
   pluginLoader: PluginLoader | null; // applied when contentType === 'plugin'
+  sortIndex:    SortIndex;
+  clientSide:   boolean;             // Modrinth mod only: filter to client-side required
+  serverSide:   boolean;             // Modrinth mod only: filter to server-side required
 }
 
 // ─── API response shapes ──────────────────────────────────────────────────────
@@ -44,6 +48,7 @@ export interface ModFile {
   filename: string;
   primary:  boolean;
   size:     number;
+  hashes?:  { sha1: string; sha512: string };
 }
 
 /** A dependency declared by a project version. */
@@ -77,7 +82,8 @@ export interface ProjectInfo {
 export type FailureReason =
   | 'network'
   | 'not_found'
-  | 'rate_limited';
+  | 'rate_limited'
+  | 'distribution_restricted';
 
 /**
  * Discriminated union returned by `resolveProjectVersion`.

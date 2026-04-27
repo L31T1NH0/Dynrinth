@@ -75,6 +75,9 @@ export function useRestoreMods(
         loader,
         shaderLoader: state.contentType === 'shader' ? (state.shaderLoader ?? 'iris') : null,
         pluginLoader: state.contentType === 'plugin' ? (state.pluginLoader ?? 'paper') : null,
+        sortIndex:    'relevance',
+        clientSide:   false,
+        serverSide:   false,
       };
 
       // Apply filters and clear queue before starting async work so the UI

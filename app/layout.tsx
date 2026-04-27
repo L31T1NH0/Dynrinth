@@ -40,10 +40,27 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebApplication',
+  name: 'Dynrinth',
+  url: 'https://dynrinth.vercel.app',
+  description: 'Minecraft mod downloader for Modrinth and CurseForge. Search mods, shaders, datapacks and resourcepacks, resolve dependencies, and download everything as a single ZIP.',
+  applicationCategory: 'GameApplication',
+  operatingSystem: 'Web',
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+};
+
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const locale = detectLocaleFromLanguage((await headers()).get('accept-language'));
   return (
     <html lang={htmlLang(locale)} className={`${outfit.variable} ${jbMono.variable}`}>
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+      </head>
       <body>
         {children}
         <Analytics />

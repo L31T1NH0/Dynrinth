@@ -27,7 +27,7 @@ export const CURRENT_FORMAT_VERSION = 2;
 
 const CONTENT_TYPE_COMPATIBILITY: Record<ContentType, Source[]> = {
   mod:            ['modrinth', 'curseforge'],
-  plugin:         ['modrinth'],
+  plugin:         ['modrinth', 'curseforge'],
   datapack:       ['modrinth', 'curseforge'],
   resourcepack:   ['modrinth', 'curseforge'],
   shader:         ['modrinth', 'curseforge'],
@@ -123,7 +123,7 @@ export function migrateWithDetails(
           state: {
             formatVersion: CURRENT_FORMAT_VERSION,
             version: obj.version, source, contentType: normalizedContentType,
-            loader: obj.loader === 'forge' ? 'forge' : 'fabric',
+            loader: (['fabric', 'forge', 'neoforge', 'quilt'] as const).includes(obj.loader as Loader) ? obj.loader as Loader : 'fabric',
             mods: obj.mods as string[],
           },
           warning: `Par inválido ${pair}. Autocorreção aplicada para contentType="mod".`,
@@ -141,16 +141,16 @@ export function migrateWithDetails(
     };
 
     if (normalizedContentType === 'mod') {
-      return { state: { ...base, loader: obj.loader === 'forge' ? 'forge' : 'fabric' } };
+      const validLoaders = new Set<Loader>(['fabric', 'forge', 'neoforge', 'quilt']);
+      const loader: Loader = validLoaders.has(obj.loader as Loader) ? obj.loader as Loader : 'fabric';
+      return { state: { ...base, loader } };
     }
     if (normalizedContentType === 'shader') {
       return { state: { ...base, shaderLoader: obj.shaderLoader === 'optifine' ? 'optifine' : 'iris' } };
     }
     if (normalizedContentType === 'plugin') {
-      const pluginLoader =
-        obj.pluginLoader === 'bukkit' || obj.pluginLoader === 'spigot' || obj.pluginLoader === 'paper'
-          ? obj.pluginLoader as PluginLoader
-          : 'paper';
+      const validPluginLoaders = new Set<PluginLoader>(['bukkit', 'spigot', 'paper', 'purpur', 'folia', 'velocity', 'bungeecord', 'sponge']);
+      const pluginLoader: PluginLoader = validPluginLoaders.has(obj.pluginLoader as PluginLoader) ? obj.pluginLoader as PluginLoader : 'paper';
       return { state: { ...base, pluginLoader } };
     }
     return { state: base };

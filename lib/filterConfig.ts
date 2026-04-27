@@ -1,12 +1,14 @@
 import type { ComponentType, SVGProps } from 'react';
-import type { ContentType, Filters, Loader, PluginLoader, ShaderLoader, Source } from '@/lib/modrinth/types';
+import type { ContentType, Filters, Loader, PluginLoader, ShaderLoader, SortIndex, Source } from '@/lib/modrinth/types';
 import {
   CogIcon, ServerStackIcon, CircleStackIcon, PhotoIcon, SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 export const LOADERS: { id: Loader; label: string }[] = [
-  { id: 'fabric', label: 'Fabric' },
-  { id: 'forge',  label: 'Forge'  },
+  { id: 'fabric',   label: 'Fabric'   },
+  { id: 'forge',    label: 'Forge'    },
+  { id: 'neoforge', label: 'NeoForge' },
+  { id: 'quilt',    label: 'Quilt'    },
 ];
 
 export const SHADER_LOADERS: { id: ShaderLoader; label: string }[] = [
@@ -15,14 +17,24 @@ export const SHADER_LOADERS: { id: ShaderLoader; label: string }[] = [
 ];
 
 export const PLUGIN_LOADERS: { id: PluginLoader; label: string }[] = [
-  { id: 'paper',  label: 'Paper'  },
-  { id: 'spigot', label: 'Spigot' },
-  { id: 'bukkit', label: 'Bukkit' },
+  // primary (shown by default)
+  { id: 'paper',      label: 'Paper'      },
+  { id: 'spigot',     label: 'Spigot'     },
+  { id: 'bukkit',     label: 'Bukkit'     },
+  // secondary (shown on expand)
+  { id: 'purpur',     label: 'Purpur'     },
+  { id: 'folia',      label: 'Folia'      },
+  { id: 'velocity',   label: 'Velocity'   },
+  { id: 'bungeecord', label: 'BungeeCord' },
+  { id: 'sponge',     label: 'Sponge'     },
 ];
+
+export const LOADER_PRIMARY_COUNT        = 2; // fabric, forge
+export const PLUGIN_LOADER_PRIMARY_COUNT = 3; // paper, spigot, bukkit
 
 export const CONTENT_TYPES: { id: ContentType; usesLoader: boolean; sources: Source[] }[] = [
   { id: 'mod',          usesLoader: true,  sources: ['modrinth', 'curseforge']   },
-  { id: 'plugin',       usesLoader: false, sources: ['modrinth']                 },
+  { id: 'plugin',       usesLoader: false, sources: ['modrinth', 'curseforge']   },
   { id: 'datapack',     usesLoader: false, sources: ['modrinth', 'curseforge']   },
   { id: 'resourcepack', usesLoader: false, sources: ['modrinth', 'curseforge']   },
   { id: 'shader',       usesLoader: false, sources: ['modrinth', 'curseforge']   },
@@ -45,6 +57,14 @@ export const CONTENT_TYPE_ICONS: Partial<Record<ContentType, ComponentType<SVGPr
   shader:       SparklesIcon,
 };
 
+export const SORT_OPTIONS: { id: SortIndex; label: string }[] = [
+  { id: 'relevance', label: 'Relevance' },
+  { id: 'downloads', label: 'Downloads' },
+  { id: 'updated',   label: 'Updated'   },
+  { id: 'newest',    label: 'Newest'    },
+  { id: 'follows',   label: 'Follows'   },
+];
+
 export const DEFAULT_FILTERS: Filters = {
   source:       'modrinth',
   version:      '',
@@ -52,4 +72,7 @@ export const DEFAULT_FILTERS: Filters = {
   loader:       'fabric',
   shaderLoader: null,
   pluginLoader: null,
+  sortIndex:    'relevance',
+  clientSide:   false,
+  serverSide:   false,
 };

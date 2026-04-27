@@ -35,19 +35,23 @@ export const en = {
     conflictWith:  'Conflicts with {title}',
     conflictBanner: '{n} conflict detected — download anyway?',
     conflictBannerPlural: '{n} conflicts detected — download anyway?',
+    multiVersionBanner:   'Mods from {versions} — separate into folders?',
+    separateFolders:      'Separate',
+    keepTogether:         'Keep together',
   },
 
   errors: {
-    noCompatibleVersion: 'No compatible version',
-    batchLimitExceeded:  'Batch download limit exceeded',
-    networkError:        'Network error',
+    noCompatibleVersion:    'No compatible version',
+    batchLimitExceeded:     'Batch download limit exceeded',
+    networkError:           'Network error',
+    distributionRestricted: 'Distribution disabled by author',
   },
 
   footer: {
     export:             'Export',
     exportTitle:        'Export mod list as JSON',
     import:             'Import',
-    importTitle:        'Import mod list from JSON',
+    importTitle:        'Import mod list from JSON or .mrpack',
     restoring:          'Restoring...',
     share:              'Share',
     shareTitle:         'Copy shareable URL',
@@ -60,6 +64,8 @@ export const en = {
     failedModsPlural:   '{n} mods could not be loaded',
     downloading:        'Downloading...',
     creatingArchive:    'Creating {format}...',
+    exportMrpack:       'Export .mrpack',
+    exportMrpackTitle:  'Export as Modrinth modpack (.mrpack)',
   },
 
   summary: {
@@ -93,12 +99,23 @@ export const en = {
   },
 
   filters: {
+    filters:     'Filters',
     source:      'Source',
     version:     'Version',
     loader:      'Loader',
     renderer:    'Renderer',
     platform:    'Platform',
     contentType: 'Content type',
+    sort:        'Sort',
+    clientSide:  'Client',
+    serverSide:  'Server',
+    sortOptions: {
+      relevance: 'Relevance',
+      downloads: 'Downloads',
+      follows:   'Follows',
+      updated:   'Updated',
+      newest:    'Newest',
+    },
     sources: {
       modrinth:   'Modrinth',
       curseforge: 'CurseForge',
@@ -159,15 +176,14 @@ export const en = {
   },
 
   meta: {
-    homeDescription:     'Easy search and download Minecraft mods from Modrinth & CurseForge',
+    homeDescription:     'Minecraft mod downloader for Modrinth and CurseForge. Search mods, shaders, datapacks and resourcepacks, resolve dependencies, and download everything as a single ZIP.',
     rankingsTitle:       'Rankings - Dynrinth',
-    rankingsDescription: 'Most downloaded Minecraft content through Dynrinth',
-    modTitle:            'Dynrinth Mod',
-    modDescription:      'Install modpacks from a code with /dynrinth <code>',
+    rankingsDescription: 'Most downloaded Minecraft mods, shaders and content through Dynrinth',
+    modTitle:            'Dynrinth Mod — In-game Minecraft Mod Installer',
+    modDescription:      'Install Minecraft modpacks in-game from a share code using the /dynrinth command. Supports Fabric, NeoForge and Paper.',
   },
 
   modPage: {
-    source: 'Source',
     hero: {
       titleLine1:       'Install modpacks',
       titleLine2:       'in one command',

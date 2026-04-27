@@ -84,8 +84,8 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
   const [isFetching,  setIsFetching]  = useState(false);
   const [mounted,     setMounted]     = useState(false);
   const sourceOptions = [
-    { value: 'modrinth', label: t.filters.sources.modrinth },
-    { value: 'curseforge', label: t.filters.sources.curseforge },
+    { value: 'modrinth', label: t.filters.sources.modrinth, icon: '/Modrinth_icon_light.webp' },
+    { value: 'curseforge', label: t.filters.sources.curseforge, icon: '/curseforge.svg' },
   ] as const;
   const contentTypes = RANKING_CONTENT_TYPES.map(ct => ({ ...ct, label: contentTypeLabel(ct.id, t) }));
 
@@ -126,6 +126,9 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
       loader:       'fabric',
       shaderLoader: contentType === 'shader' ? shaderLoader : null,
       pluginLoader: null,
+      sortIndex:    'relevance',
+      clientSide:   false,
+      serverSide:   false,
     }),
     [contentType, version, shaderLoader],
   );

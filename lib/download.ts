@@ -1,9 +1,11 @@
 import { zip, gzip } from 'fflate';
 
 export interface DownloadItem {
-  id:       string;
-  filename: string;
-  url:      string;
+  id:        string;
+  filename:  string;
+  /** Override the path inside the archive (e.g. "1.21.1/mod.jar"). Defaults to filename. */
+  path?:     string;
+  url:       string;
   sizeBytes?: number | null;
 }
 
@@ -61,7 +63,8 @@ async function fetchFile(
   const r = await fetch(item.url);
   if (!r.ok) throw new Error(`HTTP ${r.status} for ${item.filename}`);
 
-  const contentLength = Number(r.headers.get('Content-Length') ?? 0);
+  const contentLength =
+    Number(r.headers.get('Content-Length') ?? 0) || (item.sizeBytes ?? 0);
 
   if (!r.body || !contentLength) {
     onProgress(50);
@@ -154,7 +157,8 @@ export async function downloadAsZip(
   const zippable: Record<string, [Uint8Array, { level: 0 }]> = {};
 
   for (const f of succeeded) {
-    let name = f.filename;
+    const itemPath = items.find(i => i.id === f.id)?.path;
+    let name = itemPath ?? f.filename;
     if (used.has(name)) {
       const dot = name.lastIndexOf('.');
       name = dot > 0
@@ -269,7 +273,8 @@ export async function downloadAsTarGz(
   // Deduplicate filenames
   const used = new Set<string>();
   const deduped = succeeded.map(f => {
-    let name = f.filename;
+    const itemPath = items.find(i => i.id === f.id)?.path;
+    let name = itemPath ?? f.filename;
     if (used.has(name)) {
       const dot = name.lastIndexOf('.');
       name = dot > 0

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import type { MutableRefObject, Dispatch, SetStateAction } from 'react';
 import * as modrinthService   from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
-import type { ContentType, Filters, Loader, PluginLoader, ShaderLoader, Source } from '@/lib/modrinth/types';
+import type { ContentType, Filters, Loader, PluginLoader, ShaderLoader, SortIndex, Source } from '@/lib/modrinth/types';
 import { captureEvent } from '@/lib/debugCapture';
 import { BEDROCK_CONTENT_TYPES, DEFAULT_FILTERS } from '@/lib/filterConfig';
 
@@ -21,6 +21,9 @@ export interface UseFiltersReturn {
   toggleShaderLoader:            (sl: ShaderLoader) => void;
   togglePluginLoader:            (pl: PluginLoader) => void;
   setContentType:                (ct: ContentType) => void;
+  setSortIndex:                  (s: SortIndex) => void;
+  toggleClientSide:              () => void;
+  toggleServerSide:              () => void;
   dismissMobileSourceSuggestion: () => void;
   acceptMobileSourceSuggestion:  () => void;
 }
@@ -152,13 +155,29 @@ export function useFilters(): UseFiltersReturn {
       contentType:  ct,
       shaderLoader: ct === 'shader' ? prev.shaderLoader : null,
       pluginLoader: ct === 'plugin' ? prev.pluginLoader : null,
+      clientSide:   ct === 'mod' ? prev.clientSide : false,
+      serverSide:   ct === 'mod' ? prev.serverSide : false,
     }));
+  }, []);
+
+  const setSortIndex = useCallback((s: SortIndex) => {
+    captureEvent({ type: 'filter_change', ts: Date.now(), field: 'sortIndex', from: filtersRef.current.sortIndex, to: s });
+    setFilters(prev => ({ ...prev, sortIndex: s }));
+  }, []);
+
+  const toggleClientSide = useCallback(() => {
+    setFilters(prev => ({ ...prev, clientSide: !prev.clientSide }));
+  }, []);
+
+  const toggleServerSide = useCallback(() => {
+    setFilters(prev => ({ ...prev, serverSide: !prev.serverSide }));
   }, []);
 
   return {
     filters, versions, filtersRef, showMobileSourceSuggestion,
     setFilters, lockRestoredVersion,
     setSource, setVersion, setLoader, toggleShaderLoader, togglePluginLoader,
-    setContentType, dismissMobileSourceSuggestion, acceptMobileSourceSuggestion,
+    setContentType, setSortIndex, toggleClientSide, toggleServerSide,
+    dismissMobileSourceSuggestion, acceptMobileSourceSuggestion,
   };
 }

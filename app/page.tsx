@@ -6,7 +6,7 @@ import {
   MagnifyingGlassIcon, PlusIcon, CheckIcon, CheckCircleIcon, XMarkIcon,
   ArrowUpTrayIcon, ArrowDownTrayIcon, LinkIcon, ArrowPathIcon,
   ExclamationTriangleIcon, InformationCircleIcon, ArchiveBoxIcon, CubeIcon,
-  TrophyIcon, ClipboardIcon, CommandLineIcon,
+  TrophyIcon, ClipboardIcon, CommandLineIcon, ChevronDownIcon,
 } from '@heroicons/react/24/outline';
 import { TextClamp } from '@/components/TextClamp';
 import { Wordmark } from '@/components/Wordmark';
@@ -21,11 +21,12 @@ import { useFilters } from '@/hooks/useFilters';
 import { useSearch, PAGE_SIZE, MIN_QUERY_LENGTH } from '@/hooks/useSearch';
 import { useVersionMigration } from '@/hooks/useVersionMigration';
 import {
-  LOADERS, SHADER_LOADERS, PLUGIN_LOADERS, CONTENT_TYPES, CONTENT_TYPE_ICONS,
+  LOADERS, SHADER_LOADERS, PLUGIN_LOADERS, SORT_OPTIONS, CONTENT_TYPES, CONTENT_TYPE_ICONS,
+  LOADER_PRIMARY_COUNT, PLUGIN_LOADER_PRIMARY_COUNT,
 } from '@/lib/filterConfig';
-import type { ContentType, Source } from '@/lib/modrinth/types';
+import type { ContentType, Source, SortIndex } from '@/lib/modrinth/types';
 import {
-  buildShareUrl, downloadJSON, readJSONFile, buildExportState, decodeState,
+  buildShareUrl, downloadJSON, readStateFile, buildExportState, decodeState,
   type ModListState,
 } from '@/lib/stateUtils';
 import { fmtCount as fmtDownloads } from '@/lib/format';
@@ -178,19 +179,36 @@ export default function Page() {
     filters, versions, setFilters, lockRestoredVersion,
     showMobileSourceSuggestion,
     setSource, setVersion, setLoader, toggleShaderLoader, togglePluginLoader,
-    setContentType, dismissMobileSourceSuggestion, acceptMobileSourceSuggestion,
+    setContentType, setSortIndex, toggleClientSide, toggleServerSide,
+    dismissMobileSourceSuggestion, acceptMobileSourceSuggestion,
   } = useFilters();
 
-  const search = useSearch(filters, versions);
   const queue  = useQueue();
+
+  const queueVersions = [...new Set(
+    queue.entries.map(e => e.filters.version).filter(Boolean),
+  )];
+  const hasMultipleVersions = queueVersions.length > 1;
+  const canExportMrpack = queue.entries.some(
+    e => e.filters.source === 'modrinth' &&
+      (e.status === 'ready' || e.status === 'done') &&
+      !!e.resolved?.file.hashes,
+  );
+
+  const [primaryFiltersOpen, setPrimaryFiltersOpen] = useState(true);
+  const [contentTypeOpen,    setContentTypeOpen]    = useState(true);
+  const [filtersOpen,        setFiltersOpen]        = useState(false);
+  const [separateByVersion,  setSeparateByVersion]  = useState<boolean | null>(null); // null = not decided
+
+  const search = useSearch(filters, versions);
   const { isRestoring, failedCount, restoreMods } = useRestoreMods(queue, setFilters);
   const { migration, check, confirm: confirmMigration, dismiss: dismissMigration } =
     useVersionMigration(filters, queue, restoreMods);
 
   const sourceOptions = [
-    { value: 'modrinth',           label: t.filters.sources.modrinth  },
-    { value: 'curseforge',         label: t.filters.sources.curseforge },
-    { value: 'curseforge-bedrock', label: t.filters.sources.bedrock    },
+    { value: 'modrinth',           label: t.filters.sources.modrinth,   icon: '/Modrinth_icon_light.webp' },
+    { value: 'curseforge',         label: t.filters.sources.curseforge, icon: '/curseforge.svg' },
+    { value: 'curseforge-bedrock', label: t.filters.sources.bedrock,    icon: '/bedrock.webp' },
   ] as const;
 
   const contentTypes     = CONTENT_TYPES.map(ct => ({ ...ct, label: contentTypeLabel(ct.id, t) }));
@@ -224,7 +242,7 @@ export default function Page() {
   const mcCodeCopyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Archive format ────────────────────────────────────────────────────────
-  const [archiveFormat, setArchiveFormat] = useState<'zip' | 'tar.gz'>('zip');
+  const [archiveFormat, setArchiveFormat] = useState<'zip' | 'tar.gz' | 'mrpack'>('zip');
 
   useEffect(() => {
     try { localStorage.setItem('modrinth-dl:archiveFormat', archiveFormat); } catch { /* ignore */ }
@@ -233,10 +251,14 @@ export default function Page() {
   useEffect(() => {
     try {
       const savedFormat = localStorage.getItem('modrinth-dl:archiveFormat');
-      if (savedFormat === 'zip' || savedFormat === 'tar.gz') setArchiveFormat(savedFormat);
+      if (savedFormat === 'zip' || savedFormat === 'tar.gz' || savedFormat === 'mrpack') setArchiveFormat(savedFormat);
     } catch { /* ignore */ }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (archiveFormat === 'mrpack' && !canExportMrpack) setArchiveFormat('zip');
+  }, [archiveFormat, canExportMrpack]);
 
   // ── Snackbar: warn when Modrinth + datapack is selected ──────────────────
   useEffect(() => {
@@ -280,7 +302,7 @@ export default function Page() {
     if (!file) return;
     e.target.value = '';
     try {
-      const state = await readJSONFile(file);
+      const state = await readStateFile(file);
       setImportError(null);
       lockRestoredVersion(state.version);
       await restoreMods(state);
@@ -335,6 +357,16 @@ export default function Page() {
     mcCodeCopyTimer.current = setTimeout(() => setMcCodeCopied(false), 2000);
   }, [t]);
 
+  const handleDownload = useCallback(() => {
+    if (archiveFormat === 'mrpack' && !canExportMrpack) return;
+    captureEvent({ type: 'queue_download', ts: Date.now(), itemCount: queue.readyCount, format: archiveFormat });
+    if (archiveFormat === 'mrpack') {
+      void queue.exportMrpack();
+      return;
+    }
+    void queue.downloadZip(archiveFormat, separateByVersion ?? false);
+  }, [archiveFormat, canExportMrpack, queue, separateByVersion]);
+
   const inQueue = useCallback(
     (id: string) => queue.entries.some(e => e.id === id),
     [queue.entries],
@@ -356,78 +388,153 @@ export default function Page() {
             <Wordmark />
           </a>
 
-          {/* Filters */}
-          <div className="py-2 shrink-0">
-            <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-1 pb-1.5">{t.filters.source}</p>
-            <div className="px-3.5">
-              <CustomSelect
-                value={filters.source}
-                onChange={v => setSource(v as Source)}
-                options={[...sourceOptions]}
-                width="w-full"
-              />
-            </div>
+          {/* Source/version/loader */}
+          <div className="border-b border-line-subtle shrink-0">
+            <button
+              onClick={() => setPrimaryFiltersOpen(v => !v)}
+              className="w-full flex items-center justify-between px-3.5 py-2 text-[9px] font-medium text-ink-tertiary uppercase tracking-widest hover:text-ink-secondary transition-colors"
+            >
+              <span>{t.filters.filters}</span>
+              <ChevronDownIcon className={`w-3 h-3 transition-transform duration-200 ${primaryFiltersOpen ? 'rotate-180' : ''}`} />
+            </button>
 
-            <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.version}</p>
-            <div className="px-3.5">
-              <CustomSelect
-                value={filters.version}
-                onChange={setVersion}
-                options={versions.length ? versions.map(v => ({ value: v, label: v })) : [{ value: '', label: '...' }]}
-                width="w-full"
-              />
-            </div>
+            {primaryFiltersOpen && (
+              <div className="pb-2">
+                <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-1 pb-1.5">{t.filters.source}</p>
+                <div className="px-3.5">
+                  <CustomSelect
+                    value={filters.source}
+                    onChange={v => setSource(v as Source)}
+                    options={[...sourceOptions]}
+                    width="w-full"
+                  />
+                </div>
 
-            {currentTypeInfo.usesLoader && (
-              <>
-                <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.loader}</p>
+                <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.version}</p>
                 <div className="px-3.5">
-                  <PillToggle options={LOADERS} active={filters.loader} onToggle={setLoader} />
+                  <CustomSelect
+                    value={filters.version}
+                    onChange={setVersion}
+                    options={versions.length ? versions.map(v => ({ value: v, label: v })) : [{ value: '', label: '...' }]}
+                    width="w-full"
+                  />
                 </div>
-              </>
-            )}
-            {filters.contentType === 'shader' && (
-              <>
-                <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.renderer}</p>
-                <div className="px-3.5">
-                  <PillToggle options={SHADER_LOADERS} active={filters.shaderLoader} onToggle={toggleShaderLoader} />
-                </div>
-              </>
-            )}
-            {filters.contentType === 'plugin' && (
-              <>
-                <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.platform}</p>
-                <div className="px-3.5">
-                  <PillToggle options={PLUGIN_LOADERS} active={filters.pluginLoader} onToggle={togglePluginLoader} />
-                </div>
-              </>
+
+                {currentTypeInfo.usesLoader && (
+                  <>
+                    <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.loader}</p>
+                    <div className="px-3.5">
+                      <PillToggle options={LOADERS} active={filters.loader} onToggle={setLoader} primaryCount={LOADER_PRIMARY_COUNT} />
+                    </div>
+                  </>
+                )}
+                {filters.contentType === 'shader' && (
+                  <>
+                    <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.renderer}</p>
+                    <div className="px-3.5">
+                      <PillToggle options={SHADER_LOADERS} active={filters.shaderLoader} onToggle={toggleShaderLoader} />
+                    </div>
+                  </>
+                )}
+                {filters.contentType === 'plugin' && filters.source === 'modrinth' && (
+                  <>
+                    <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.platform}</p>
+                    <div className="px-3.5">
+                      <PillToggle options={PLUGIN_LOADERS} active={filters.pluginLoader} onToggle={togglePluginLoader} primaryCount={PLUGIN_LOADER_PRIMARY_COUNT} />
+                    </div>
+                  </>
+                )}
+              </div>
             )}
           </div>
 
-          {/* Divider */}
-          <div className="h-px bg-line-subtle mx-3.5 my-1 shrink-0" />
-
           {/* Content type nav */}
-          <div className="py-1 overflow-y-auto">
-            <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-1 pb-1.5">{t.filters.contentType}</p>
-            {contentTypes.filter(ct => ct.sources.includes(filters.source)).map(ct => {
-              const Icon = CONTENT_TYPE_ICONS[ct.id];
-              return (
-                <button
-                  key={ct.id}
-                  onClick={() => setContentType(ct.id)}
-                  className={[
-                    'flex items-center gap-2 w-[calc(100%-12px)] mx-1.5 px-3 py-1.5 mb-px rounded text-[12.5px] font-medium transition-all duration-100 border',
-                    filters.contentType === ct.id
-                      ? 'bg-brand-glow text-ink-primary border-brand/30'
-                      : 'text-ink-secondary hover:text-ink-primary hover:bg-bg-hover border-transparent',
-                  ].join(' ')}
-                >
-                  {Icon && <Icon className="w-3 h-3 shrink-0" />}
-                  {ct.label}
-                </button>
-              );
-            })}
+          <div className="border-b border-line-subtle shrink-0">
+            <button
+              onClick={() => setContentTypeOpen(v => !v)}
+              className="w-full flex items-center justify-between px-3.5 py-2 text-[9px] font-medium text-ink-tertiary uppercase tracking-widest hover:text-ink-secondary transition-colors"
+            >
+              <span>{t.filters.contentType}</span>
+              <ChevronDownIcon className={`w-3 h-3 transition-transform duration-200 ${contentTypeOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {contentTypeOpen && (
+              <div className="py-1 overflow-y-auto">
+                {contentTypes.filter(ct => ct.sources.includes(filters.source)).map(ct => {
+                  const Icon = CONTENT_TYPE_ICONS[ct.id];
+                  return (
+                    <button
+                      key={ct.id}
+                      onClick={() => setContentType(ct.id)}
+                      className={[
+                        'flex items-center gap-2 w-[calc(100%-12px)] mx-1.5 px-3 py-1.5 mb-px rounded text-[12.5px] font-medium transition-all duration-100 border',
+                        filters.contentType === ct.id
+                          ? 'bg-brand-glow text-ink-primary border-brand/30'
+                          : 'text-ink-secondary hover:text-ink-primary hover:bg-bg-hover border-transparent',
+                      ].join(' ')}
+                    >
+                      {Icon && <Icon className="w-3 h-3 shrink-0" />}
+                      {ct.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Collapsible extra filters (sort, client/server) */}
+          <div className="border-t border-line-subtle shrink-0">
+            <button
+              onClick={() => setFiltersOpen(v => !v)}
+              className="w-full flex items-center justify-between px-3.5 py-2 text-[9px] font-medium text-ink-tertiary uppercase tracking-widest hover:text-ink-secondary transition-colors"
+            >
+              <span>{t.filters.sort}</span>
+              <ChevronDownIcon className={`w-3 h-3 transition-transform duration-200 ${filtersOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {filtersOpen && (
+              <div className="pb-2">
+                <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pb-1.5">{t.filters.sort}</p>
+                <div className="px-3.5">
+                  <CustomSelect
+                    value={filters.sortIndex}
+                    onChange={v => setSortIndex(v as import('@/lib/modrinth/types').SortIndex)}
+                    options={SORT_OPTIONS.map(s => ({ value: s.id, label: t.filters.sortOptions[s.id] }))}
+                    width="w-full"
+                  />
+                </div>
+
+                {filters.source === 'modrinth' && filters.contentType === 'mod' && (
+                  <>
+                    <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.clientSide} / {t.filters.serverSide}</p>
+                    <div className="px-3.5 flex gap-1.5">
+                      <button
+                        onClick={toggleClientSide}
+                        className={[
+                          'h-7 px-3 rounded-md text-[11px] transition-all duration-150 font-medium',
+                          filters.clientSide
+                            ? 'bg-brand-glow border border-brand text-brand'
+                            : 'bg-bg-surface text-ink-secondary hover:text-ink-primary hover:bg-bg-hover',
+                        ].join(' ')}
+                      >
+                        {t.filters.clientSide}
+                      </button>
+                      <button
+                        onClick={toggleServerSide}
+                        className={[
+                          'h-7 px-3 rounded-md text-[11px] transition-all duration-150 font-medium',
+                          filters.serverSide
+                            ? 'bg-brand-glow border border-brand text-brand'
+                            : 'bg-bg-surface text-ink-secondary hover:text-ink-primary hover:bg-bg-hover',
+                        ].join(' ')}
+                      >
+                        {t.filters.serverSide}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Spacer */}
@@ -506,13 +613,45 @@ export default function Page() {
                 width="w-28"
               />
               {currentTypeInfo.usesLoader && (
-                <PillToggle options={LOADERS} active={filters.loader} onToggle={setLoader} />
+                <PillToggle options={LOADERS} active={filters.loader} onToggle={setLoader} primaryCount={LOADER_PRIMARY_COUNT} />
               )}
               {filters.contentType === 'shader' && (
                 <PillToggle options={SHADER_LOADERS} active={filters.shaderLoader} onToggle={toggleShaderLoader} />
               )}
-              {filters.contentType === 'plugin' && (
-                <PillToggle options={PLUGIN_LOADERS} active={filters.pluginLoader} onToggle={togglePluginLoader} />
+              {filters.contentType === 'plugin' && filters.source === 'modrinth' && (
+                <PillToggle options={PLUGIN_LOADERS} active={filters.pluginLoader} onToggle={togglePluginLoader} primaryCount={PLUGIN_LOADER_PRIMARY_COUNT} />
+              )}
+              <CustomSelect
+                value={filters.sortIndex}
+                onChange={v => setSortIndex(v as import('@/lib/modrinth/types').SortIndex)}
+                options={SORT_OPTIONS.map(s => ({ value: s.id, label: t.filters.sortOptions[s.id] }))}
+                width="w-28"
+              />
+              {filters.source === 'modrinth' && filters.contentType === 'mod' && (
+                <>
+                  <button
+                    onClick={toggleClientSide}
+                    className={[
+                      'h-7 px-3 rounded-md text-[11px] transition-all duration-150 font-medium',
+                      filters.clientSide
+                        ? 'bg-brand-glow border border-brand text-brand'
+                        : 'bg-bg-surface text-ink-secondary hover:text-ink-primary hover:bg-bg-hover',
+                    ].join(' ')}
+                  >
+                    {t.filters.clientSide}
+                  </button>
+                  <button
+                    onClick={toggleServerSide}
+                    className={[
+                      'h-7 px-3 rounded-md text-[11px] transition-all duration-150 font-medium',
+                      filters.serverSide
+                        ? 'bg-brand-glow border border-brand text-brand'
+                        : 'bg-bg-surface text-ink-secondary hover:text-ink-primary hover:bg-bg-hover',
+                    ].join(' ')}
+                  >
+                    {t.filters.serverSide}
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -913,6 +1052,8 @@ export default function Page() {
                         <div className="text-[10px] text-red-err mt-0.5">
                           {entry.errorReason === 'no_compatible_version'
                             ? t.errors.noCompatibleVersion
+                            : entry.errorReason === 'distribution_restricted'
+                            ? t.errors.distributionRestricted
                             : entry.errorReason === 'threshold_exceeded'
                             ? t.errors.batchLimitExceeded
                             : t.errors.networkError}
@@ -978,7 +1119,7 @@ export default function Page() {
             <input
               ref={importInputRef}
               type="file"
-              accept=".json,application/json"
+              accept=".json,.mrpack,application/json,application/zip"
               className="hidden"
               onChange={handleImportFile}
             />
@@ -1088,6 +1229,28 @@ export default function Page() {
               </div>
             )}
 
+            {hasMultipleVersions && separateByVersion === null && !queue.isDownloading && (
+              <div className="mb-2 rounded-md border border-line bg-bg-surface p-2.5">
+                <p className="text-[10px] text-ink-secondary">
+                  {t.queue.multiVersionBanner.replace('{versions}', queueVersions.join(', '))}
+                </p>
+                <div className="mt-2 flex gap-1.5">
+                  <button
+                    onClick={() => setSeparateByVersion(true)}
+                    className="h-7 px-2.5 rounded-md bg-brand-glow border border-brand/30 text-brand text-[10px] font-semibold hover:border-brand transition-colors"
+                  >
+                    {t.queue.separateFolders}
+                  </button>
+                  <button
+                    onClick={() => setSeparateByVersion(false)}
+                    className="h-7 px-2.5 rounded-md bg-bg-base border border-line text-ink-secondary text-[10px] font-semibold hover:text-ink-primary hover:border-line-strong transition-colors"
+                  >
+                    {t.queue.keepTogether}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {queue.isDownloading ? (
               <button
                 disabled
@@ -1101,14 +1264,18 @@ export default function Page() {
             ) : queue.readyCount > 1 ? (
               <div className="flex w-full h-10 rounded-lg overflow-hidden border border-brand">
                 <button
-                  onClick={() => { captureEvent({ type: 'queue_download', ts: Date.now(), itemCount: queue.readyCount, format: archiveFormat }); queue.downloadZip(archiveFormat); }}
+                  onClick={handleDownload}
                   className="flex-1 bg-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover active:scale-[0.98]"
                 >
                   <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
                   {t.footer.downloadFiles.replace('{n}', String(queue.readyCount))}
                 </button>
                 <button
-                  onClick={() => setArchiveFormat(f => f === 'zip' ? 'tar.gz' : 'zip')}
+                  onClick={() => setArchiveFormat(f => {
+                    if (f === 'zip') return 'tar.gz';
+                    if (f === 'tar.gz') return canExportMrpack ? 'mrpack' : 'zip';
+                    return 'zip';
+                  })}
                   title={t.footer.toggleFormat}
                   className="px-3 bg-brand text-brand-dark text-[10px] font-mono font-semibold border-l border-black/20 hover:bg-brand-hover transition-colors"
                 >
@@ -1117,8 +1284,8 @@ export default function Page() {
               </div>
             ) : (
               <button
-                onClick={() => { captureEvent({ type: 'queue_download', ts: Date.now(), itemCount: queue.readyCount, format: archiveFormat }); queue.downloadZip(archiveFormat); }}
-                disabled={queue.readyCount === 0}
+                onClick={handleDownload}
+                disabled={queue.readyCount === 0 || (archiveFormat === 'mrpack' && !canExportMrpack)}
                 className="w-full h-10 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover hover:border-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <ArrowDownTrayIcon className="w-[13px] h-[13px]" />

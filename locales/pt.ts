@@ -37,31 +37,37 @@ export const pt: typeof en = {
     conflictWith:  'Conflito com {title}',
     conflictBanner: '{n} conflito detectado — baixar mesmo assim?',
     conflictBannerPlural: '{n} conflitos detectados — baixar mesmo assim?',
+    multiVersionBanner:   'Mods de {versions} — separar em pastas?',
+    separateFolders:      'Separar',
+    keepTogether:         'Manter junto',
   },
 
   errors: {
-    noCompatibleVersion: 'Nenhuma versão compatível',
-    batchLimitExceeded:  'Limite de download em lote excedido',
-    networkError:        'Erro de rede',
+    noCompatibleVersion:    'Nenhuma versão compatível',
+    batchLimitExceeded:     'Limite de download em lote excedido',
+    networkError:           'Erro de rede',
+    distributionRestricted: 'Distribuição desabilitada pelo autor',
   },
 
   footer: {
     export:           'Exportar',
     exportTitle:      'Exportar lista de mods como JSON',
     import:           'Importar',
-    importTitle:      'Importar lista de mods do JSON',
+    importTitle:      'Importar lista de mods de JSON ou .mrpack',
     restoring:        'Restaurando...',
     share:            'Compartilhar',
     shareTitle:       'Copiar URL compartilhável',
     copySharePrompt:  'Copie esta URL de compartilhamento:',
     copied:           'Copiado!',
-    downloadFile:     'Baixar arquivo',
-    downloadFiles:    'Baixar {n} arquivos',
-    toggleFormat:     'Alternar formato do arquivo',
-    failedMods:       '{n} mod não pôde ser carregado',
-    failedModsPlural: '{n} mods não puderam ser carregados',
-    downloading:      'Baixando...',
-    creatingArchive:  'Criando {format}...',
+    downloadFile:       'Baixar arquivo',
+    downloadFiles:      'Baixar {n} arquivos',
+    toggleFormat:       'Alternar formato do arquivo',
+    failedMods:         '{n} mod não pôde ser carregado',
+    failedModsPlural:   '{n} mods não puderam ser carregados',
+    downloading:        'Baixando...',
+    creatingArchive:    'Criando {format}...',
+    exportMrpack:       'Exportar .mrpack',
+    exportMrpackTitle:  'Exportar como modpack Modrinth (.mrpack)',
   },
 
   summary: {
@@ -95,12 +101,23 @@ export const pt: typeof en = {
   },
 
   filters: {
+    filters:     'Filtros',
     source:      'Fonte',
     version:     'Versão',
     loader:      'Loader',
     renderer:    'Renderizador',
     platform:    'Plataforma',
     contentType: 'Tipo de conteúdo',
+    sort:        'Ordenar',
+    clientSide:  'Cliente',
+    serverSide:  'Servidor',
+    sortOptions: {
+      relevance: 'Relevância',
+      downloads: 'Downloads',
+      follows:   'Seguidores',
+      updated:   'Atualizado',
+      newest:    'Mais novo',
+    },
     sources: {
       modrinth:   'Modrinth',
       curseforge: 'CurseForge',
@@ -161,15 +178,14 @@ export const pt: typeof en = {
   },
 
   meta: {
-    homeDescription:     'Pesquise e baixe mods de Minecraft do Modrinth e CurseForge com facilidade',
+    homeDescription:     'Downloader de mods de Minecraft do Modrinth e CurseForge. Pesquise mods, shaders, datapacks e resourcepacks, resolva dependências e baixe tudo em um único ZIP.',
     rankingsTitle:       'Rankings - Dynrinth',
-    rankingsDescription: 'Conteúdos de Minecraft mais baixados pelo Dynrinth',
-    modTitle:            'Dynrinth Mod',
-    modDescription:      'Instale modpacks a partir de um código com /dynrinth <code>',
+    rankingsDescription: 'Mods, shaders e conteúdos de Minecraft mais baixados pelo Dynrinth',
+    modTitle:            'Dynrinth Mod — Instalador de Mods no Jogo',
+    modDescription:      'Instale modpacks de Minecraft dentro do jogo a partir de um código com o comando /dynrinth. Suporta Fabric, NeoForge e Paper.',
   },
 
   modPage: {
-    source: 'Código-fonte',
     hero: {
       titleLine1:      'Instale modpacks',
       titleLine2:      'com um comando',

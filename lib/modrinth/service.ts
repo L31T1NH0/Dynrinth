@@ -4,6 +4,7 @@ import type {
   ProjectInfo,
   ResolveResult,
   SearchPage,
+  SortIndex,
   VersionDependency,
 } from './types';
 
@@ -24,6 +25,15 @@ export const PAGE_SIZE = 20;
  *   plugin      → project_type + plugin-platform category (if set) + game version
  *   others      → project_type + game version only
  */
+// CurseForge doesn't use this; follow/newest have no equivalent there.
+const MODRINTH_SORT_FALLBACK: Record<SortIndex, SortIndex> = {
+  relevance: 'relevance',
+  downloads: 'downloads',
+  follows:   'follows',
+  updated:   'updated',
+  newest:    'newest',
+};
+
 function buildFacets(f: Filters): string[][] {
   const groups: string[][] = [
     [`project_type:${f.contentType}`],
@@ -35,6 +45,10 @@ function buildFacets(f: Filters): string[][] {
     groups.splice(1, 0, [`categories:${f.shaderLoader}`]);
   if (f.contentType === 'plugin' && f.pluginLoader)
     groups.splice(1, 0, [`categories:${f.pluginLoader}`]);
+  if (f.contentType === 'mod') {
+    if (f.clientSide) groups.push(['client_side:required']);
+    if (f.serverSide) groups.push(['server_side:required']);
+  }
   return groups;
 }
 
@@ -89,11 +103,15 @@ export async function searchProjects(
   offset:  number,
   signal?: AbortSignal,
 ): Promise<SearchPage> {
+  const sort = (filters.sortIndex === 'relevance' && !query)
+    ? 'downloads'
+    : MODRINTH_SORT_FALLBACK[filters.sortIndex];
+
   const params = new URLSearchParams({
     facets: JSON.stringify(buildFacets(filters)),
     limit:  String(PAGE_SIZE),
     offset: String(offset),
-    index:  query ? 'relevance' : 'downloads',
+    index:  sort,
   });
   if (query) params.set('query', query);
 
@@ -141,7 +159,7 @@ export async function resolveProjectVersion(
 
     const vers: Array<{
       version_number: string;
-      files:          ModFile[];
+      files:          Array<{ url: string; filename: string; primary: boolean; size: number; hashes?: { sha1: string; sha512: string } }>;
       dependencies:   Array<{ project_id: string; dependency_type: string }>;
     }> = await r.json();
 

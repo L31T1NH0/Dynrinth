@@ -37,31 +37,37 @@ export const tr: typeof en = {
     conflictWith:  '{title} ile çakışma',
     conflictBanner: '{n} çakışma tespit edildi — yine de indirilsin mi?',
     conflictBannerPlural: '{n} çakışma tespit edildi — yine de indirilsin mi?',
+    multiVersionBanner:   '{versions} — klasörlere ayırsın mı?',
+    separateFolders:      'Ayır',
+    keepTogether:         'Bir arada tut',
   },
 
   errors: {
-    noCompatibleVersion: 'Uyumlu sürüm yok',
-    batchLimitExceeded:  'Toplu indirme sınırı aşıldı',
-    networkError:        'Ağ hatası',
+    noCompatibleVersion:    'Uyumlu sürüm yok',
+    batchLimitExceeded:     'Toplu indirme sınırı aşıldı',
+    networkError:           'Ağ hatası',
+    distributionRestricted: 'Dağıtım yazar tarafından devre dışı bırakıldı',
   },
 
   footer: {
     export:           'Dışa aktar',
     exportTitle:      'Mod listesini JSON olarak dışa aktar',
     import:           'İçe aktar',
-    importTitle:      'Mod listesini JSON\'dan içe aktar',
+    importTitle:      'Mod listesini JSON veya .mrpack\'ten içe aktar',
     restoring:        'Geri yükleniyor...',
     share:            'Paylaş',
     shareTitle:       'Paylaşılabilir URL\'yi kopyala',
     copySharePrompt:  'Bu paylaşım URL\'sini kopyalayın:',
     copied:           'Kopyalandı!',
-    downloadFile:     'Dosyayı indir',
-    downloadFiles:    '{n} dosyayı indir',
-    toggleFormat:     'Arşiv formatını değiştir',
-    failedMods:       '{n} mod yüklenemedi',
-    failedModsPlural: '{n} mod yüklenemedi',
-    downloading:      'İndiriliyor...',
-    creatingArchive:  '{format} oluşturuluyor...',
+    downloadFile:       'Dosyayı indir',
+    downloadFiles:      '{n} dosyayı indir',
+    toggleFormat:       'Arşiv formatını değiştir',
+    failedMods:         '{n} mod yüklenemedi',
+    failedModsPlural:   '{n} mod yüklenemedi',
+    downloading:        'İndiriliyor...',
+    creatingArchive:    '{format} oluşturuluyor...',
+    exportMrpack:       '.mrpack dışa aktar',
+    exportMrpackTitle:  'Modrinth modpack olarak dışa aktar (.mrpack)',
   },
 
   summary: {
@@ -95,12 +101,23 @@ export const tr: typeof en = {
   },
 
   filters: {
+    filters:     'Filtreler',
     source:      'Kaynak',
     version:     'Sürüm',
     loader:      'Loader',
     renderer:    'Renderer',
     platform:    'Platform',
     contentType: 'İçerik türü',
+    sort:        'Sıralama',
+    clientSide:  'İstemci',
+    serverSide:  'Sunucu',
+    sortOptions: {
+      relevance: 'Alaka',
+      downloads: 'İndirmeler',
+      follows:   'Takipçiler',
+      updated:   'Güncellendi',
+      newest:    'En yeni',
+    },
     sources: {
       modrinth:   'Modrinth',
       curseforge: 'CurseForge',
@@ -161,15 +178,14 @@ export const tr: typeof en = {
   },
 
   meta: {
-    homeDescription:     'Minecraft modlarını Modrinth ve CurseForge\'dan kolayca ara ve indir',
+    homeDescription:     'Modrinth ve CurseForge için Minecraft mod indiricisi. Mod, shader, datapack ve resourcepack ara, bağımlılıkları çöz ve hepsini tek bir ZIP olarak indir.',
     rankingsTitle:       'Sıralamalar - Dynrinth',
-    rankingsDescription: 'Dynrinth üzerinden en çok indirilen Minecraft içerikleri',
-    modTitle:            'Dynrinth Mod',
-    modDescription:      '/dynrinth <code> ile koddan modpack kur',
+    rankingsDescription: 'Dynrinth üzerinden en çok indirilen Minecraft modları, shaderları ve içerikleri',
+    modTitle:            'Dynrinth Mod — Oyun İçi Minecraft Mod Yükleyici',
+    modDescription:      '/dynrinth komutuyla oyun içinde paylaşım kodundan Minecraft modpack kur. Fabric, NeoForge ve Paper destekler.',
   },
 
   modPage: {
-    source: 'Kaynak',
     hero: {
       titleLine1:      'Modpack kur',
       titleLine2:      'tek komutla',

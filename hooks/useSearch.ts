@@ -97,7 +97,7 @@ export function useSearch(filters: Filters, versions: string[]): UseSearchReturn
         : snapshot.contentType === 'plugin'
           ? snapshot.pluginLoader ?? ''
           : '';
-    return [snapshot.source, snapshot.contentType, snapshot.version, loaderScope, query, String(startOffset)].join('|');
+    return [snapshot.source, snapshot.contentType, snapshot.version, loaderScope, snapshot.sortIndex, String(snapshot.clientSide), String(snapshot.serverSide), query, String(startOffset)].join('|');
   }, []);
 
   const fetchSearchPage = useCallback(async (
@@ -290,7 +290,7 @@ export function useSearch(filters: Filters, versions: string[]): UseSearchReturn
     fallbackUsageRef.current.delete(interactionIdRef.current);
     void runSearch(q, filters, 0, false, interactionIdRef.current);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters.source, filters.version, filters.contentType, filters.loader, filters.shaderLoader, filters.pluginLoader, runSearch]);
+  }, [filters.source, filters.version, filters.contentType, filters.loader, filters.shaderLoader, filters.pluginLoader, filters.sortIndex, filters.clientSide, filters.serverSide, runSearch]);
 
   // ── Cleanup ───────────────────────────────────────────────────────────────
   useEffect(() => () => {

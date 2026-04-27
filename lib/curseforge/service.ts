@@ -4,6 +4,7 @@ import type {
   ProjectInfo,
   ResolveResult,
   SearchPage,
+  SortIndex,
   Source,
   VersionDependency,
 } from '@/lib/modrinth/types';
@@ -51,13 +52,19 @@ function getClassId(source: Source, contentType: Filters['contentType']): number
   return map[contentType] ?? 0;
 }
 
-/**
- * CurseForge modLoaderType integers.
- * Only Fabric and Forge are present in the app's Loader union.
- */
+const CF_SORT_FIELDS: Record<SortIndex, string> = {
+  relevance: '2', // Popularity
+  downloads: '6', // TotalDownloads
+  follows:   '2', // No equivalent → Popularity
+  updated:   '3', // LastUpdated
+  newest:    '3', // No exact equivalent → LastUpdated
+};
+
 const LOADER_TYPES: Partial<Record<Filters['loader'], number>> = {
-  fabric: 4,
-  forge:  1,
+  fabric:   4,
+  forge:    1,
+  neoforge: 6,
+  quilt:    5,
 };
 
 function mapCfModToSearchResult(mod: CfMod) {
@@ -131,7 +138,7 @@ export async function searchProjects(
     classId:   String(getClassId(filters.source, filters.contentType)),
     index:     String(offset),
     pageSize:  String(PAGE_SIZE),
-    sortField: '2', // Popularity
+    sortField: CF_SORT_FIELDS[filters.sortIndex],
     sortOrder: 'desc',
   });
 
@@ -188,7 +195,7 @@ export async function resolveProjectVersion(
     if (!data.data.length) return { ok: false, reason: 'no_compatible_version' };
 
     const file = data.data[0];
-    if (!file.downloadUrl) return { ok: false, reason: 'no_compatible_version' };
+    if (!file.downloadUrl) return { ok: false, reason: 'distribution_restricted' };
 
     const dependencies: VersionDependency[] = file.dependencies
       .filter(d => d.relationType === 3) // 3 = RequiredDependency
