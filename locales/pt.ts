@@ -53,7 +53,7 @@ export const pt: typeof en = {
     export:           'Exportar',
     exportTitle:      'Exportar lista de mods como JSON',
     import:           'Importar',
-    importTitle:      'Importar lista de mods de JSON ou .mrpack',
+    importTitle:      'Importar lista de mods de JSON, .mrpack ou CurseForge modpack',
     restoring:        'Restaurando...',
     share:            'Compartilhar',
     shareTitle:       'Copiar URL compartilhável',

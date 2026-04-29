@@ -100,7 +100,79 @@ export function readJSONFile(file: File): Promise<ModListState> {
 export function readStateFile(file: File): Promise<ModListState> {
   const isMrpack = /\.mrpack$/i.test(file.name);
   if (isMrpack) return readMrpackFile(file);
-  return readJSONFile(file);
+  return readHTMLOrJSONFile(file);
+}
+
+function isHTMLList(raw: string): boolean {
+  const trimmed = raw.trim();
+  return trimmed.startsWith('<') && trimmed.includes('</a>');
+}
+
+function parseCurseForgeLinkList(html: string, baseVersion: string, baseLoader: Loader): ModListState {
+  const seen = new Set<string>();
+  const mods: string[] = [];
+
+  const linkMatches = html.matchAll(/<a[^>]+href=["']https?:\/\/(?:www\.)?curseforge\.com\/(?:minecraft\/(?:mc-)?mods|java-edition\/mods)\/([^/"#]+)/g);
+  for (const match of linkMatches) {
+    const slug = match[1];
+    if (!seen.has(slug)) {
+      seen.add(slug);
+      mods.push(`curseforge/${slug}`);
+    }
+  }
+
+  if (mods.length === 0) {
+    const altMatches = html.matchAll(/<a[^>]+href=["']https?:\/\/(?:www\.)?curseforge\.com\/([^/"#]+)/g);
+    for (const match of altMatches) {
+      const path = match[1];
+      const parts = path.split('/').filter(Boolean);
+      if (parts[0] === 'minecraft' || parts[0] === 'java-edition') {
+        const slug = parts[parts.length - 1];
+        if (!seen.has(slug)) {
+          seen.add(slug);
+          mods.push(`curseforge/${slug}`);
+        }
+      }
+    }
+  }
+
+  return {
+    formatVersion: CURRENT_FORMAT_VERSION,
+    version:       baseVersion,
+    source:        'curseforge',
+    contentType:   'mod',
+    loader:       baseLoader,
+    mods,
+  };
+}
+
+async function readHTMLOrJSONFile(file: File): Promise<ModListState> {
+  const text = await file.text();
+
+  if (isHTMLList(text)) {
+    return parseCurseForgeLinkList(text, '1.20.1', 'forge');
+  }
+
+  const parsed = JSON.parse(text);
+
+  if (isModrinthIndex(parsed)) {
+    const state = fromModrinthIndex(parsed);
+    if (!state) throw new Error('No Modrinth CDN files found in the index.');
+    return state;
+  }
+
+  if (isCurseForgeManifest(parsed)) {
+    return fromCurseForgeManifest(parsed);
+  }
+
+  const migrated = migrateWithDetails(parsed, { autoCorrectInvalidPair: true });
+  if (!migrated.state) {
+    throw new Error(
+      `Unsupported format. Expected ModListState v1/v2 or compatible aliases. Detail: ${migrated.error ?? 'invalid structure'}`,
+    );
+  }
+  if (migrated.warning) console.warn(`[readHTMLOrJSONFile] ${migrated.warning}`);
+  return migrated.state;
 }
 
 // ─── Builder ──────────────────────────────────────────────────────────────────
