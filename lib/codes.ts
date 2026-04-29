@@ -110,10 +110,10 @@ function canonicalizeGroups(state: ModListState): Array<{
 
 // ── Public API ───────────────────────────────────────────────────────────────
 
-export function generateCode(state: ModListState): string {
+function canonicalHashPayload(state: ModListState, salt = ''): string {
   // Hash excludes `version` — same mod list on different MC versions → same MAIN.
   const canonicalGroups = canonicalizeGroups(state);
-  const canonical = JSON.stringify({
+  return JSON.stringify({
     formatVersion: state.formatVersion,
     source:        state.source,
     contentType:   state.contentType,
@@ -122,8 +122,19 @@ export function generateCode(state: ModListState): string {
     pluginLoader:  state.pluginLoader ?? null,
     mods:          [...state.mods].sort(),
     groups:        canonicalGroups,
+    ...(salt ? { salt } : {}),
   });
-  const hash = createHash('sha256').update(canonical).digest();
+}
+
+export function stateStorageSignature(state: ModListState): string {
+  return JSON.stringify({
+    version: state.version,
+    payload: canonicalHashPayload(state),
+  });
+}
+
+export function generateCode(state: ModListState, salt = ''): string {
+  const hash = createHash('sha256').update(canonicalHashPayload(state, salt)).digest();
 
   const { minor, patch } = parseMcVersion(state.version);
   const v      = schemaChar(SCHEMA_VERSION);

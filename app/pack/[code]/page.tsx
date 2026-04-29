@@ -18,6 +18,14 @@ interface ModrinthProject {
   downloads:   number;
 }
 
+function parseStoredState(stored: string) {
+  try {
+    return migrate(JSON.parse(stored));
+  } catch {
+    return null;
+  }
+}
+
 async function fetchProjects(ids: string[]): Promise<ModrinthProject[]> {
   if (ids.length === 0) return [];
   try {
@@ -44,7 +52,7 @@ export async function generateMetadata(
   if (!code) return {};
   const stored = await kvGet(codeKey(code));
   if (!stored) return {};
-  const state = migrate(JSON.parse(stored));
+  const state = parseStoredState(stored);
   if (!state) return {};
   return {
     title: `Modpack ${code} — Dynrinth`,
@@ -62,7 +70,7 @@ export default async function PackPage(
   const stored = await kvGet(codeKey(code!));
   if (!stored) notFound();
 
-  const state = migrate(JSON.parse(stored!));
+  const state = parseStoredState(stored!);
   if (!state) notFound();
 
   const projects = await fetchProjects(state!.mods);

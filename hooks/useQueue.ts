@@ -258,11 +258,14 @@ async function resolveEntry(
   dispatch:     Dispatch<QueueAction>,
   getEntries:   () => QueueEntry[],
 ): Promise<void> {
+  const isStillQueued = () => getEntries().some(e => e.queueKey === entry.queueKey);
+
   dispatch({ type: 'SET_STATUS', queueKey: entry.queueKey, status: 'resolving' });
   const service = getService(entry.filters);
 
   try {
     const result = await service.resolveProjectVersion(entry.id, entry.filters);
+    if (!isStillQueued()) return;
 
     if (!result.ok) {
       dispatch({ type: 'ERROR', queueKey: entry.queueKey, reason: result.reason });
@@ -305,8 +308,10 @@ async function resolveEntry(
     // Auto-add required dependencies; ADD reducer deduplicates.
     const required = result.version.dependencies.filter(d => d.dependencyType === 'required');
     for (const dep of required) {
+      if (!isStillQueued()) return;
       try {
         const info = await service.fetchProjectInfo(dep.projectId);
+        if (!isStillQueued()) return;
         dispatch({
           type: 'ADD',
           entry: {

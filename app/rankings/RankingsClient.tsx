@@ -51,7 +51,7 @@ const PODIUM: Record<number, { label: string; color: string; border: string; glo
 
 function modPageUrl(entry: RankingEntry): string {
   if (entry.source === 'modrinth') return `https://modrinth.com/project/${entry.id}`;
-  return `https://www.curseforge.com/minecraft/mc-mods/${entry.id}`;
+  return `https://www.curseforge.com/minecraft/search?search=${encodeURIComponent(entry.name ?? entry.id)}`;
 }
 
 function contentTypeLabel(

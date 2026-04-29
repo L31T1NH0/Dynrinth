@@ -190,6 +190,26 @@ export async function downloadAsZip(
 
 // ── tar.gz support ────────────────────────────────────────────────────────────
 
+function encodedLength(value: string): number {
+  return new TextEncoder().encode(value).length;
+}
+
+function splitTarPath(path: string): { name: string; prefix: string } {
+  if (encodedLength(path) <= 100) return { name: path, prefix: '' };
+
+  const slashIndexes = [...path.matchAll(/\//g)].map(m => m.index ?? -1).filter(i => i > 0);
+  for (let i = slashIndexes.length - 1; i >= 0; i--) {
+    const slash = slashIndexes[i];
+    const prefix = path.slice(0, slash);
+    const name = path.slice(slash + 1);
+    if (encodedLength(prefix) <= 155 && encodedLength(name) <= 100) {
+      return { name, prefix };
+    }
+  }
+
+  return { name: path, prefix: '' };
+}
+
 function buildTar(files: FetchedFile[]): Uint8Array {
   const enc = new TextEncoder();
   const now = Math.floor(Date.now() / 1000);
@@ -197,9 +217,10 @@ function buildTar(files: FetchedFile[]): Uint8Array {
 
   for (const f of files) {
     const header = new Uint8Array(512);
+    const tarPath = splitTarPath(f.filename);
 
-    // name (100 bytes) — encode first, then slice bytes to avoid multi-byte char overflow
-    header.set(enc.encode(f.filename).subarray(0, 99), 0);
+    // name/prefix fields are byte-limited in ustar.
+    header.set(enc.encode(tarPath.name).subarray(0, 100), 0);
     // mode
     header.set(enc.encode('0000644\0'), 100);
     // uid / gid
@@ -216,6 +237,7 @@ function buildTar(files: FetchedFile[]): Uint8Array {
     // ustar magic + version
     header.set(enc.encode('ustar\0'), 257);
     header.set(enc.encode('00'), 263);
+    if (tarPath.prefix) header.set(enc.encode(tarPath.prefix).subarray(0, 155), 345);
 
     // compute checksum over all 512 bytes (checksum field = spaces)
     let checksum = 0;
