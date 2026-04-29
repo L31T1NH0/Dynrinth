@@ -5,7 +5,7 @@ import {
   CURRENT_FORMAT_VERSION,
   type ModListState,
 } from '@/lib/stateSchema';
-import { isModrinthIndex, fromModrinthIndex, readMrpackFile } from '@/lib/mrpack';
+import { isModrinthIndex, isCurseForgeManifest, fromModrinthIndex, fromCurseForgeManifest, readMrpackFile } from '@/lib/mrpack';
 
 // Re-export the canonical state type so callers don't need to know about stateSchema.
 export type { ModListState, ModListStateV2, ContentGroup } from '@/lib/stateSchema';
@@ -69,6 +69,12 @@ export function readJSONFile(file: File): Promise<ModListState> {
         if (isModrinthIndex(parsed)) {
           const state = fromModrinthIndex(parsed);
           if (!state) { reject(new Error('No Modrinth CDN files found in the index.')); return; }
+          resolve(state);
+          return;
+        }
+
+        if (isCurseForgeManifest(parsed)) {
+          const state = fromCurseForgeManifest(parsed);
           resolve(state);
           return;
         }

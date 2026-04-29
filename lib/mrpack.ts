@@ -12,6 +12,26 @@ interface ModrinthIndex {
   dependencies:  Record<string, string>;
 }
 
+interface CurseForgeManifest {
+  minecraft: {
+    version: string;
+    modLoaders: Array<{ id: string; primary?: boolean }>;
+    recommendedRam?: number;
+  };
+  manifestType: string;
+  manifestVersion: number;
+  name: string;
+  version: string;
+  author: string;
+  files: Array<{
+    projectID: number;
+    fileID: number;
+    required: boolean;
+    isLocked: boolean;
+  }>;
+  overrides?: string;
+}
+
 export function isModrinthIndex(raw: unknown): raw is ModrinthIndex {
   if (typeof raw !== 'object' || raw === null) return false;
   const o = raw as Record<string, unknown>;
@@ -20,6 +40,51 @@ export function isModrinthIndex(raw: unknown): raw is ModrinthIndex {
     Array.isArray(o['files']) &&
     typeof o['dependencies'] === 'object' && o['dependencies'] !== null
   );
+}
+
+export function isCurseForgeManifest(raw: unknown): raw is CurseForgeManifest {
+  if (typeof raw !== 'object' || raw === null) return false;
+  const o = raw as Record<string, unknown>;
+  return (
+    typeof o['minecraft'] === 'object' && o['minecraft'] !== null &&
+    (o['manifestType'] === 'minecraftModpack') &&
+    Array.isArray(o['files'])
+  );
+}
+
+function inferLoader(modLoaders: CurseForgeManifest['minecraft']['modLoaders']): Loader {
+  for (const ml of modLoaders) {
+    const id = ml.id.toLowerCase();
+    if (id.startsWith('forge'))    return 'forge';
+    if (id.startsWith('neoforge')) return 'neoforge';
+    if (id.startsWith('fabric'))  return 'fabric';
+    if (id.startsWith('quilt'))   return 'quilt';
+  }
+  return 'fabric';
+}
+
+export function fromCurseForgeManifest(manifest: CurseForgeManifest): ModListState {
+  const mc = manifest.minecraft;
+  const loader = inferLoader(mc.modLoaders);
+
+  const seen = new Set<string>();
+  const mods: string[] = [];
+  for (const file of manifest.files) {
+    const id = `curseforge/${file.projectID}/${file.fileID}`;
+    if (!seen.has(id)) {
+      seen.add(id);
+      mods.push(id);
+    }
+  }
+
+  return {
+    formatVersion: CURRENT_FORMAT_VERSION,
+    version:       mc.version,
+    source:        'curseforge',
+    contentType:   'mod',
+    loader,
+    mods,
+  };
 }
 
 export function fromModrinthIndex(index: ModrinthIndex): ModListState | null {
