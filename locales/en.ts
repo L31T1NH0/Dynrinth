@@ -157,6 +157,10 @@ export const en = {
     tracking:         'Tracking downloads through Dynrinth',
     onlineNow:        '{n} online now',
     totalDownloads:   'Total downloaded',
+    allDownloads:     'All downloaded mods',
+    backToFiltered:   'Filtered ranking',
+    noVersionBreakdown: 'No versions yet',
+    versionDownloads: '{version}: {count} downloads',
   },
 
   importErrors: {

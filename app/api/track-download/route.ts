@@ -26,6 +26,10 @@ function member(source: string, id: string): string {
   return `${source}:${id}`;
 }
 
+function versionsKey(source: string, id: string): string {
+  return `downloads:versions:${member(source, id)}`;
+}
+
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const ip = getRequestIp(req);
   const rateLimit = await checkRateLimit(ip, '/api/track-download');
@@ -59,6 +63,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         if (mod.version) {
           commands.push(['ZINCRBY', `downloads:leaderboard:${mod.contentType}:${mod.version}`, '1', member(mod.source, mod.id)]);
         }
+      }
+      if (mod.version) {
+        commands.push(['ZINCRBY', versionsKey(mod.source, mod.id), '1', mod.version]);
       }
       commands.push(['HSET', metaKey(mod.source, mod.id),
         'name',    mod.name    ?? '',

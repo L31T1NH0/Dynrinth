@@ -9,6 +9,7 @@ export interface RankingEntry {
   name:    string | null;
   iconUrl: string | null;
   count:   number;
+  versions?: Array<{ version: string; count: number }>;
 }
 
 export interface RankingsResponse {
@@ -22,6 +23,10 @@ const MAX_LIMIT       = 100;
 
 function metaKey(member: string): string {
   return `downloads:meta:${member}`;
+}
+
+function versionsKey(member: string): string {
+  return `downloads:versions:${member}`;
 }
 
 async function queryLeaderboard(key: string, fetchLimit: number) {
@@ -51,6 +56,7 @@ export async function GET(req: NextRequest): Promise<NextResponse<RankingsRespon
   const contentTypeParam = req.nextUrl.searchParams.get('contentType');
   const versionParam     = req.nextUrl.searchParams.get('version');
   const sourceParam      = req.nextUrl.searchParams.get('source');
+  const includeVersions  = req.nextUrl.searchParams.get('includeVersions') === '1';
 
   const limit = Math.min(
     MAX_LIMIT,
@@ -80,6 +86,9 @@ export async function GET(req: NextRequest): Promise<NextResponse<RankingsRespon
 
     // Fetch metadata for each member in one pipeline
     const metaResult = await kvPipeline(members.map(m => ['HGETALL', metaKey(m)]));
+    const versionsResult = includeVersions
+      ? await kvPipeline(members.map(m => ['ZREVRANGE', versionsKey(m), '0', '9', 'WITHSCORES']))
+      : [];
 
     let rankings: RankingEntry[] = members.map((m, idx) => {
       const [source, ...idParts] = m.split(':');
@@ -96,7 +105,24 @@ export async function GET(req: NextRequest): Promise<NextResponse<RankingsRespon
         }
       }
 
-      return { rank: idx + 1, member: m, source, id, name, iconUrl, count: scores[idx] };
+      const rawVersions = versionsResult[idx]?.result;
+      const versions: Array<{ version: string; count: number }> = [];
+      if (Array.isArray(rawVersions)) {
+        for (let i = 0; i < rawVersions.length; i += 2) {
+          versions.push({ version: String(rawVersions[i]), count: Number(rawVersions[i + 1]) });
+        }
+      }
+
+      return {
+        rank: idx + 1,
+        member: m,
+        source,
+        id,
+        name,
+        iconUrl,
+        count: scores[idx],
+        ...(includeVersions ? { versions } : {}),
+      };
     });
 
     // Filter by source and re-rank if needed

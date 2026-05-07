@@ -8,6 +8,7 @@ export interface RankingEntry {
   name:    string | null;
   iconUrl: string | null;
   count:   number;
+  versions?: Array<{ version: string; count: number }>;
 }
 
 export interface RankingsResponse {

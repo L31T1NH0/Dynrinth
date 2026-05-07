@@ -82,6 +82,7 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
   const [rankings,    setRankings]    = useState(initialRankings);
   const [total,       setTotal]       = useState(initialTotal);
   const [isFetching,  setIsFetching]  = useState(false);
+  const [showAllDownloads, setShowAllDownloads] = useState(false);
   const [mounted,     setMounted]     = useState(false);
   const [liveStats,   setLiveStats]   = useState<{ usersOnline: number | null; totalDownloads: number | null }>({ usersOnline: null, totalDownloads: null });
   const sidRef = useRef<string | null>(null);
@@ -136,8 +137,10 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
 
   // Re-fetch rankings whenever source / contentType / version changes
   useEffect(() => {
-    if (!version) return;
-    const params = new URLSearchParams({ contentType, version, source, limit: '20' });
+    if (!showAllDownloads && !version) return;
+    const params = showAllDownloads
+      ? new URLSearchParams({ limit: '100', includeVersions: '1' })
+      : new URLSearchParams({ contentType, version, source, limit: '20' });
     setIsFetching(true);
     fetch(`/api/rankings?${params}`)
       .then(r => r.json() as Promise<{ rankings: RankingEntry[]; total: number }>)
@@ -147,7 +150,7 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
       })
       .catch(() => {})
       .finally(() => setIsFetching(false));
-  }, [source, contentType, version]);
+  }, [source, contentType, version, showAllDownloads]);
 
   const queueCount     = queue.entries.length;
   const totalDownloads = rankings.reduce((s, e) => s + e.count, 0);
@@ -168,6 +171,7 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
   );
 
   const currentLabel = contentTypeLabel(contentType, t);
+  const filteredLabel = `${currentLabel}${version ? ` · ${version}` : ''}`;
 
   return (
     <div className="flex bg-bg-base text-ink-primary overflow-hidden select-none" style={{ height: '100dvh' }}>
@@ -186,7 +190,10 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
           <div className="px-3.5">
             <CustomSelect
               value={source}
-              onChange={v => setSource(v as 'modrinth' | 'curseforge')}
+              onChange={v => {
+                setShowAllDownloads(false);
+                setSource(v as 'modrinth' | 'curseforge');
+              }}
               options={[...sourceOptions]}
               width="w-full"
             />
@@ -196,7 +203,10 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
           <div className="px-3.5">
             <CustomSelect
               value={version}
-              onChange={setVersion}
+              onChange={v => {
+                setShowAllDownloads(false);
+                setVersion(v);
+              }}
               options={versions.length ? versions.map(v => ({ value: v, label: v })) : [{ value: '', label: '...' }]}
               width="w-full"
             />
@@ -209,7 +219,10 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
                 <PillToggle<ShaderLoader>
                   options={SHADER_LOADERS}
                   active={shaderLoader}
-                  onToggle={sl => setShaderLoader(prev => prev === sl ? null : sl)}
+                  onToggle={sl => {
+                    setShowAllDownloads(false);
+                    setShaderLoader(prev => prev === sl ? null : sl);
+                  }}
                 />
               </div>
             </>
@@ -225,7 +238,10 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
           {contentTypes.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
-              onClick={() => setContentType(id)}
+              onClick={() => {
+                setShowAllDownloads(false);
+                setContentType(id);
+              }}
               className={[
                 'flex items-center gap-2 w-[calc(100%-12px)] mx-1.5 px-3 py-1.5 mb-px rounded text-[12.5px] font-medium transition-all duration-100 border',
                 contentType === id
@@ -269,10 +285,19 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
                   </div>
                 )}
                 {liveStats.totalDownloads !== null && (
-                  <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllDownloads(true)}
+                    className={[
+                      'text-left rounded border px-2 py-1.5 -mx-2 transition-colors',
+                      showAllDownloads
+                        ? 'bg-brand-glow border-brand/30'
+                        : 'border-transparent hover:bg-bg-hover hover:border-line-subtle',
+                    ].join(' ')}
+                  >
                     <p className="text-mono text-[9px] text-ink-tertiary uppercase tracking-widest mb-0.5">{t.rankings.totalDownloads.toUpperCase()}</p>
                     <p className="text-mono text-[11px] font-semibold text-ink-primary">{fmtCount(liveStats.totalDownloads)}</p>
-                  </div>
+                  </button>
                 )}
               </div>
             )}
@@ -307,7 +332,10 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
             {contentTypes.map(ct => (
               <button
                 key={ct.id}
-                onClick={() => setContentType(ct.id)}
+                onClick={() => {
+                  setShowAllDownloads(false);
+                  setContentType(ct.id);
+                }}
                 className={[
                   'py-2 text-xs font-medium border-b-2 transition-all duration-150 -mb-px whitespace-nowrap',
                   contentType === ct.id
@@ -330,13 +358,19 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
           <div className="flex items-center gap-3 px-5 pb-2 flex-wrap">
             <CustomSelect
               value={source}
-              onChange={v => setSource(v as 'modrinth' | 'curseforge')}
+              onChange={v => {
+                setShowAllDownloads(false);
+                setSource(v as 'modrinth' | 'curseforge');
+              }}
               options={[...sourceOptions]}
               width="w-32"
             />
             <CustomSelect
               value={version}
-              onChange={setVersion}
+              onChange={v => {
+                setShowAllDownloads(false);
+                setVersion(v);
+              }}
               options={versions.length ? versions.map(v => ({ value: v, label: v })) : [{ value: '', label: '...' }]}
               width="w-28"
             />
@@ -344,7 +378,10 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
               <PillToggle<ShaderLoader>
                 options={SHADER_LOADERS}
                 active={shaderLoader}
-                onToggle={sl => setShaderLoader(prev => prev === sl ? null : sl)}
+                onToggle={sl => {
+                  setShowAllDownloads(false);
+                  setShaderLoader(prev => prev === sl ? null : sl);
+                }}
               />
             )}
             {isFetching && (
@@ -365,10 +402,21 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
         {/* Page title bar (desktop) */}
         <div className="hidden md:flex items-center gap-2 px-5 h-12 border-b border-line-subtle shrink-0 bg-bg-base">
           <TrophyIcon className="w-3.5 h-3.5 text-brand shrink-0" />
-          <span className="text-[13px] font-semibold tracking-tight">{t.rankings.mostDownloaded}</span>
-          <span className="text-mono text-[10px] text-ink-tertiary ml-1">
-            · {currentLabel}{version ? ` · ${version}` : ''}
+          <span className="text-[13px] font-semibold tracking-tight">
+            {showAllDownloads ? t.rankings.totalDownloads : t.rankings.mostDownloaded}
           </span>
+          <span className="text-mono text-[10px] text-ink-tertiary ml-1">
+            · {showAllDownloads ? t.rankings.allDownloads : filteredLabel}
+          </span>
+          {showAllDownloads && (
+            <button
+              type="button"
+              onClick={() => setShowAllDownloads(false)}
+              className="h-7 px-2 rounded-md text-ink-secondary text-[11px] font-medium hover:text-ink-primary hover:bg-bg-hover border border-transparent hover:border-line-subtle transition-all duration-150"
+            >
+              {t.rankings.backToFiltered}
+            </button>
+          )}
           {isFetching && (
             <span className="w-3.5 h-3.5 rounded-full border-[1.5px] border-line-strong border-t-brand animate-spin shrink-0" />
           )}
@@ -389,7 +437,9 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
               <span className="text-xs text-center leading-relaxed">
                 {isFetching
                   ? t.rankings.loading
-                  : t.rankings.empty.replace('{type}', currentLabel.toLowerCase())
+                  : showAllDownloads
+                    ? t.rankings.empty.replace('{type}', t.rankings.allDownloads.toLowerCase())
+                    : t.rankings.empty.replace('{type}', currentLabel.toLowerCase())
                 }
                 {!isFetching && <><br />{t.rankings.emptyHint}</>}
               </span>
@@ -451,6 +501,21 @@ export function RankingsClient({ rankings: initialRankings, total: initialTotal 
                           <span className="text-[10px] px-1.5 py-0.5 rounded bg-brand-glow text-brand border border-brand/30 font-mono">
                             ⬇ {fmtCount(entry.count)}
                           </span>
+                          {showAllDownloads && entry.versions?.length ? (
+                            entry.versions.map(v => (
+                              <span
+                                key={v.version}
+                                className="text-[10px] px-1.5 py-0.5 rounded bg-bg-surface text-ink-secondary border border-line-subtle font-mono"
+                                title={t.rankings.versionDownloads.replace('{version}', v.version).replace('{count}', fmtCount(v.count))}
+                              >
+                                {v.version} · {fmtCount(v.count)}
+                              </span>
+                            ))
+                          ) : showAllDownloads ? (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-bg-surface text-ink-tertiary border border-line-subtle font-mono">
+                              {t.rankings.noVersionBreakdown}
+                            </span>
+                          ) : null}
                         </div>
                       </div>
 

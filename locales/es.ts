@@ -159,6 +159,10 @@ export const es: typeof en = {
     tracking:         'Seguimiento de descargas a traves de Dynrinth',
     onlineNow:        '{n} en línea ahora',
     totalDownloads:   'Total descargados',
+    allDownloads:     'Todos los mods descargados',
+    backToFiltered:   'Ranking filtrado',
+    noVersionBreakdown: 'Sin versiones aun',
+    versionDownloads: '{version}: {count} descargas',
   },
 
   importErrors: {

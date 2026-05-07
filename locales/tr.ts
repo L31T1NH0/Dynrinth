@@ -159,6 +159,10 @@ export const tr: typeof en = {
     tracking:         'İndirmeler Dynrinth üzerinden izleniyor',
     onlineNow:        'Şu an {n} çevrimiçi',
     totalDownloads:   'Toplam indirilen',
+    allDownloads:     'İndirilen tüm modlar',
+    backToFiltered:   'Filtreli sıralama',
+    noVersionBreakdown: 'Henüz sürüm yok',
+    versionDownloads: '{version}: {count} indirme',
   },
 
   importErrors: {

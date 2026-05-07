@@ -220,8 +220,6 @@ export default function Page() {
     { value: 'modrinth',           label: t.filters.sources.modrinth,   icon: '/Modrinth_icon_light.webp' },
     { value: 'curseforge',         label: t.filters.sources.curseforge, icon: '/curseforge.svg' },
     { value: 'curseforge-bedrock', label: t.filters.sources.bedrock,    icon: '/bedrock.webp' },
-    { value: 'pvprp',              label: t.filters.sources.pvprp },
-    { value: 'optifine',           label: t.filters.sources.optifine },
   ] as const;
 
   const contentTypes     = CONTENT_TYPES.map(ct => ({ ...ct, label: contentTypeLabel(ct.id, t) }));
