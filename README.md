@@ -4,7 +4,7 @@ Dynrinth e uma aplicacao web em `Next.js` para montar listas de mods e outros co
 
 ## Visao Geral
 
-- Busca projetos em `Modrinth`, `CurseForge` e `CurseForge Bedrock`.
+- Busca projetos em `Modrinth`, `CurseForge`, `CurseForge Bedrock` e fontes experimentais via scraper.
 - Resolve dependencias obrigatorias automaticamente antes do download.
 - Mantem uma fila de itens com progresso individual e geral.
 - Exporta a fila como `.zip`, `.tar.gz` e, quando possivel, `.mrpack`.
@@ -15,7 +15,7 @@ Dynrinth e uma aplicacao web em `Next.js` para montar listas de mods e outros co
 
 ## Recursos
 
-- Fontes suportadas: `Modrinth`, `CurseForge` (Java) e `CurseForge Bedrock`.
+- Fontes suportadas: `Modrinth`, `CurseForge` (Java), `CurseForge Bedrock`, `PVPRP` (experimental) e `OptiFine` (experimental).
 - Tipos de conteudo Java: `mod`, `plugin`, `datapack`, `resourcepack`, `shader`.
 - Tipos de conteudo Bedrock: `addon`, `map`, `texture-pack`, `script`, `skin`.
 - Filtros por versao do Minecraft.
@@ -42,6 +42,7 @@ Dynrinth e uma aplicacao web em `Next.js` para montar listas de mods e outros co
 
 - `Node.js 20+`
 - `npm`
+- `Python 3.10+` para fontes experimentais via Scrapling
 
 ## Instalacao
 
@@ -51,16 +52,27 @@ cd Dynrinth
 npm install
 ```
 
+Para testar `PVPRP` e `OptiFine`, instale as dependencias Python em uma venv:
+
+```bash
+python3 -m venv .venv-scrapers
+.venv-scrapers/bin/python -m pip install -r requirements-scrapers.txt
+```
+
+Se usar outro caminho, defina `SCRAPER_PYTHON=/caminho/para/python`.
+
 ## Variaveis De Ambiente
 
 ```bash
 CURSEFORGE_API_KEY=
 KV_REST_API_URL=
 KV_REST_API_TOKEN=
+SCRAPER_PYTHON=
 ```
 
 - `CURSEFORGE_API_KEY`: necessario para habilitar buscas e resolucao de arquivos via CurseForge, incluindo Bedrock.
 - `KV_REST_API_URL` e `KV_REST_API_TOKEN`: opcionais, mas necessarios para persistir codigos curtos, alimentar rankings e usar rate limit com KV em producao.
+- `SCRAPER_PYTHON`: opcional; aponta para o Python com `requirements-scrapers.txt` instalado. Se ausente, a rota tenta `.venv-scrapers/bin/python`, `.venv/bin/python` e depois `python3`.
 
 Sem `CURSEFORGE_API_KEY`, a aplicacao continua funcionando para `Modrinth`.
 
@@ -109,6 +121,8 @@ Aplicacao local: `http://localhost:3000`
 
 - `GET /api/curseforge`: proxy com allowlist de endpoints e query params do CurseForge.
 - `GET /api/curseforge/download`: proxy/stream validado para downloads do CurseForge.
+- `GET /api/scrapers`: proxy experimental para os scrapers `PVPRP` e `OptiFine` via Scrapling.
+- `GET /api/scrapers/download`: proxy/stream validado para downloads de hosts dos scrapers experimentais.
 - `POST /api/codes`: valida o estado da lista e retorna um codigo curto; com KV configurado, persiste o estado para recuperacao posterior.
 - `GET /api/codes/[code]`: recupera uma lista salva a partir do codigo quando o backend KV esta disponivel.
 - `POST /api/track-download`: incrementa contadores usados no ranking quando o backend KV esta disponivel.
@@ -162,6 +176,8 @@ Arquivos centrais:
 - `app/rankings/RankingsClient.tsx`: interface do leaderboard.
 - `lib/modrinth/service.ts`: integracao direta com a API do Modrinth.
 - `lib/curseforge/service.ts`: integracao com o proxy server-side do CurseForge.
+- `lib/scrapers/service.ts`: integracao experimental com rotas que executam scrapers Scrapling.
+- `tools/scrapers/providers.py`: scrapers experimentais de `PVPRP` e `OptiFine`.
 - `lib/stateUtils.ts`: serializacao, compartilhamento por URL e import/export.
 - `lib/mrpack.ts`: leitura e geracao de `.mrpack`.
 

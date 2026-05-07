@@ -2,6 +2,7 @@ import { useReducer, useEffect, useRef, useCallback } from 'react';
 import type { Dispatch } from 'react';
 import * as modrinthService   from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
+import * as scraperService    from '@/lib/scrapers/service';
 import {
   DownloadDomainError,
   downloadAsZip,
@@ -14,7 +15,9 @@ import type { FailureReason, Filters, Loader, ResolvedVersion } from '@/lib/modr
 import { trackDownload } from '@/lib/tracking';
 
 function getService(filters: Filters) {
-  return filters.source === 'modrinth' ? modrinthService : curseforgeService;
+  if (filters.source === 'modrinth') return modrinthService;
+  if (filters.source === 'curseforge' || filters.source === 'curseforge-bedrock') return curseforgeService;
+  return scraperService;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -207,7 +210,7 @@ function persist(entries: QueueEntry[]): void {
   } catch { /* quota or private-browsing — silently ignore */ }
 }
 
-const VALID_SOURCES  = new Set(['modrinth', 'curseforge', 'curseforge-bedrock']);
+const VALID_SOURCES  = new Set(['modrinth', 'curseforge', 'curseforge-bedrock', 'pvprp', 'optifine']);
 const VALID_STATUSES = new Set<QueueItemStatus>(['pending', 'resolving', 'ready', 'downloading', 'done', 'error']);
 
 function isValidEntry(e: unknown): e is QueueEntry {

@@ -27,11 +27,15 @@ export const PAGE_SIZE = 20;
  */
 // CurseForge doesn't use this; follow/newest have no equivalent there.
 const MODRINTH_SORT_FALLBACK: Record<SortIndex, SortIndex> = {
-  relevance: 'relevance',
-  downloads: 'downloads',
-  follows:   'follows',
-  updated:   'updated',
-  newest:    'newest',
+  relevance:       'relevance',
+  downloads:       'downloads',
+  follows:         'follows',
+  updated:         'updated',
+  newest:          'newest',
+  oldest:          'newest',
+  name_az:         'relevance',
+  name_za:         'relevance',
+  least_downloads: 'downloads',
 };
 
 function buildFacets(f: Filters): string[][] {

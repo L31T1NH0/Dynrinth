@@ -22,8 +22,8 @@ import { useFilters } from '@/hooks/useFilters';
 import { useSearch, PAGE_SIZE, MIN_QUERY_LENGTH } from '@/hooks/useSearch';
 import { useVersionMigration } from '@/hooks/useVersionMigration';
 import {
-  LOADERS, SHADER_LOADERS, PLUGIN_LOADERS, SORT_OPTIONS, CONTENT_TYPES, CONTENT_TYPE_ICONS,
-  LOADER_PRIMARY_COUNT, PLUGIN_LOADER_PRIMARY_COUNT,
+  LOADERS, SHADER_LOADERS, PLUGIN_LOADERS, CONTENT_TYPES, CONTENT_TYPE_ICONS,
+  LOADER_PRIMARY_COUNT, PLUGIN_LOADER_PRIMARY_COUNT, sortOptionsForSource,
 } from '@/lib/filterConfig';
 import type { ContentType, Source, SortIndex } from '@/lib/modrinth/types';
 import {
@@ -220,9 +220,12 @@ export default function Page() {
     { value: 'modrinth',           label: t.filters.sources.modrinth,   icon: '/Modrinth_icon_light.webp' },
     { value: 'curseforge',         label: t.filters.sources.curseforge, icon: '/curseforge.svg' },
     { value: 'curseforge-bedrock', label: t.filters.sources.bedrock,    icon: '/bedrock.webp' },
+    { value: 'pvprp',              label: t.filters.sources.pvprp },
+    { value: 'optifine',           label: t.filters.sources.optifine },
   ] as const;
 
   const contentTypes     = CONTENT_TYPES.map(ct => ({ ...ct, label: contentTypeLabel(ct.id, t) }));
+  const sortOptions      = sortOptionsForSource(filters.source);
   const currentTypeInfo  = CONTENT_TYPES.find(ct => ct.id === filters.contentType)!;
   const currentTypeLabel = contentTypeLabel(filters.contentType, t);
   const canUseMinecraftShare = filters.source === 'modrinth';
@@ -435,7 +438,7 @@ export default function Page() {
     void queue.downloadZip(archiveFormat, separateByVersion ?? false);
   }, [archiveFormat, canUseMrpack, queue, separateByVersion]);
 
-  const inQueue = (id: string) => renderedQueueEntries.some(e => e.id === id);
+  const inQueue = (id: string) => renderedQueueEntries.some(e => e.id === id && e.filters.source === filters.source);
 
   // ─── Render ───────────────────────────────────────────────────────────────
 
@@ -485,7 +488,7 @@ export default function Page() {
                   />
                 </div>
 
-                {currentTypeInfo.usesLoader && (
+                {currentTypeInfo.usesLoader && filters.source !== 'optifine' && (
                   <>
                     <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.loader}</p>
                     <div className="px-3.5">
@@ -563,7 +566,7 @@ export default function Page() {
                   <CustomSelect
                     value={filters.sortIndex}
                     onChange={v => setSortIndex(v as import('@/lib/modrinth/types').SortIndex)}
-                    options={SORT_OPTIONS.map(s => ({ value: s.id, label: t.filters.sortOptions[s.id] }))}
+                    options={sortOptions.map(s => ({ value: s.id, label: t.filters.sortOptions[s.id] }))}
                     width="w-full"
                   />
                 </div>
@@ -675,7 +678,7 @@ export default function Page() {
                 options={versions.length ? versions.map(v => ({ value: v, label: v })) : [{ value: '', label: '...' }]}
                 width="w-28"
               />
-              {currentTypeInfo.usesLoader && (
+              {currentTypeInfo.usesLoader && filters.source !== 'optifine' && (
                 <PillToggle options={LOADERS} active={filters.loader} onToggle={setLoader} primaryCount={LOADER_PRIMARY_COUNT} />
               )}
               {filters.contentType === 'shader' && (
@@ -687,7 +690,7 @@ export default function Page() {
               <CustomSelect
                 value={filters.sortIndex}
                 onChange={v => setSortIndex(v as import('@/lib/modrinth/types').SortIndex)}
-                options={SORT_OPTIONS.map(s => ({ value: s.id, label: t.filters.sortOptions[s.id] }))}
+                options={sortOptions.map(s => ({ value: s.id, label: t.filters.sortOptions[s.id] }))}
                 width="w-28"
               />
               {filters.source === 'modrinth' && filters.contentType === 'mod' && (
@@ -823,7 +826,7 @@ export default function Page() {
                 {search.results.map((item, i) => {
                   const isNew      = i >= search.offset - PAGE_SIZE && !search.animatedIds.current.has(item.project_id);
                   const queued     = inQueue(item.project_id);
-                  const qEntry     = queue.entries.find(e => e.id === item.project_id);
+                  const qEntry     = queue.entries.find(e => e.id === item.project_id && e.filters.source === filters.source);
                   const isActive   = qEntry?.status === 'pending' || qEntry?.status === 'resolving';
                   const justAdded  = justAddedIds.has(item.project_id);
 

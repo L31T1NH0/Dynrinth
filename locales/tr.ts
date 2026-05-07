@@ -117,11 +117,17 @@ export const tr: typeof en = {
       follows:   'Takipçiler',
       updated:   'Güncellendi',
       newest:    'En yeni',
+      oldest:    'En eski',
+      name_az:   'A-Z',
+      name_za:   'Z-A',
+      least_downloads: 'En az indirme',
     },
     sources: {
       modrinth:   'Modrinth',
       curseforge: 'CurseForge',
       bedrock:    'Bedrock',
+      pvprp:      'PVPRP',
+      optifine:   'OptiFine',
     },
     contentTypes: {
       mod:            'Modlar',

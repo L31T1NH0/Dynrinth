@@ -53,11 +53,15 @@ function getClassId(source: Source, contentType: Filters['contentType']): number
 }
 
 const CF_SORT_FIELDS: Record<SortIndex, string> = {
-  relevance: '2', // Popularity
-  downloads: '6', // TotalDownloads
-  follows:   '2', // No equivalent → Popularity
-  updated:   '3', // LastUpdated
-  newest:    '3', // No exact equivalent → LastUpdated
+  relevance:       '2', // Popularity
+  downloads:       '6', // TotalDownloads
+  follows:         '2', // No equivalent → Popularity
+  updated:         '3', // LastUpdated
+  newest:          '3', // No exact equivalent → LastUpdated
+  oldest:          '3',
+  name_az:         '2',
+  name_za:         '2',
+  least_downloads: '6',
 };
 
 const LOADER_TYPES: Partial<Record<Filters['loader'], number>> = {

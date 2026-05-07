@@ -2,6 +2,8 @@
 /node_modules
 tsconfig.tsbuildinfo
 /.next
+.venv
+.venv-scrapers
 .env.local
 dynrinth-design-preview.html
 *.mrpack

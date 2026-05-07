@@ -115,11 +115,17 @@ export const en = {
       follows:   'Follows',
       updated:   'Updated',
       newest:    'Newest',
+      oldest:    'Oldest',
+      name_az:   'A-Z',
+      name_za:   'Z-A',
+      least_downloads: 'Least downloads',
     },
     sources: {
       modrinth:   'Modrinth',
       curseforge: 'CurseForge',
       bedrock:    'Bedrock',
+      pvprp:      'PVPRP',
+      optifine:   'OptiFine',
     },
     contentTypes: {
       mod:            'Mods',

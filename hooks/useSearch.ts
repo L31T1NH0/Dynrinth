@@ -5,6 +5,7 @@ import type { MutableRefObject } from 'react';
 import { flushSync } from 'react-dom';
 import * as modrinthService   from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
+import * as scraperService    from '@/lib/scrapers/service';
 import type { Filters, SearchPage, SearchResult } from '@/lib/modrinth/types';
 import { captureEvent } from '@/lib/debugCapture';
 
@@ -33,7 +34,7 @@ type SearchFallbackDebugMeta = {
 };
 
 type SearchFetchContext = {
-  service: typeof modrinthService | typeof curseforgeService;
+  service: typeof modrinthService | typeof curseforgeService | typeof scraperService;
   signal:  AbortSignal;
 };
 
@@ -159,7 +160,11 @@ export function useSearch(filters: Filters, versions: string[]): UseSearchReturn
     }
 
     try {
-      const service  = snapshot.source === 'modrinth' ? modrinthService : curseforgeService;
+      const service = snapshot.source === 'modrinth'
+        ? modrinthService
+        : snapshot.source === 'curseforge' || snapshot.source === 'curseforge-bedrock'
+          ? curseforgeService
+          : scraperService;
       const fetchCtx: SearchFetchContext = { service, signal: ctrl.signal };
       const fetchMeta = { cacheHit: false };
       let page     = await fetchSearchPage(query, snapshot, startOffset, fetchCtx, fetchMeta);

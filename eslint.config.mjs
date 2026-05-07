@@ -1,6 +1,9 @@
 import nextVitals from 'eslint-config-next/core-web-vitals'
 
 const config = [
+  {
+    ignores: ['.venv/**', '.venv-scrapers/**'],
+  },
   ...nextVitals,
   {
     rules: {

@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import * as modrinthService   from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
+import * as scraperService    from '@/lib/scrapers/service';
 import type { Filters, Loader, PluginLoader, ShaderLoader } from '@/lib/modrinth/types';
 import type { UseQueueReturn } from './useQueue';
 import type { ModListState, ContentGroup } from '@/lib/stateUtils';
@@ -200,7 +201,11 @@ export function useRestoreMods(
           batch,
           FETCH_CONCURRENCY,
           item => {
-            const service = item.filters.source === 'modrinth' ? modrinthService : curseforgeService;
+            const service = item.filters.source === 'modrinth'
+              ? modrinthService
+              : item.filters.source === 'curseforge' || item.filters.source === 'curseforge-bedrock'
+                ? curseforgeService
+                : scraperService;
             return service.fetchProjectInfo(item.id);
           },
         );

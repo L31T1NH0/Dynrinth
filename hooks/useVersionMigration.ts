@@ -1,13 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import * as modrinthService   from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
+import * as scraperService    from '@/lib/scrapers/service';
 import type { Filters } from '@/lib/modrinth/types';
 import type { UseQueueReturn, QueueEntry } from './useQueue';
 import type { ModListState } from '@/lib/stateUtils';
 import { CURRENT_FORMAT_VERSION } from '@/lib/stateSchema';
 
 function getService(source: string) {
-  return source === 'modrinth' ? modrinthService : curseforgeService;
+  if (source === 'modrinth') return modrinthService;
+  if (source === 'curseforge' || source === 'curseforge-bedrock') return curseforgeService;
+  return scraperService;
 }
 
 async function runCompatibilityCheck(

@@ -117,11 +117,17 @@ export const es: typeof en = {
       follows:   'Seguidores',
       updated:   'Actualizado',
       newest:    'Mas reciente',
+      oldest:    'Mas antiguo',
+      name_az:   'A-Z',
+      name_za:   'Z-A',
+      least_downloads: 'Menos descargas',
     },
     sources: {
       modrinth:   'Modrinth',
       curseforge: 'CurseForge',
       bedrock:    'Bedrock',
+      pvprp:      'PVPRP',
+      optifine:   'OptiFine',
     },
     contentTypes: {
       mod:            'Mods',

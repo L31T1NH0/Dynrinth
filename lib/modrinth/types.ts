@@ -1,10 +1,12 @@
 // ─── Filter domain ────────────────────────────────────────────────────────────
 
-export type Source       = 'modrinth' | 'curseforge' | 'curseforge-bedrock';
+export type Source       = 'modrinth' | 'curseforge' | 'curseforge-bedrock' | 'pvprp' | 'optifine';
 export type Loader       = 'fabric' | 'forge' | 'neoforge' | 'quilt';
 export type ShaderLoader = 'iris' | 'optifine';
 export type PluginLoader = 'bukkit' | 'spigot' | 'paper' | 'purpur' | 'folia' | 'velocity' | 'bungeecord' | 'sponge';
-export type SortIndex    = 'relevance' | 'downloads' | 'follows' | 'updated' | 'newest';
+export type SortIndex    =
+  | 'relevance' | 'downloads' | 'follows' | 'updated' | 'newest'
+  | 'oldest' | 'name_az' | 'name_za' | 'least_downloads';
 export type ContentType  =
   | 'mod' | 'plugin' | 'datapack' | 'resourcepack' | 'shader'  // Java / Modrinth
   | 'addon' | 'map' | 'texture-pack' | 'script' | 'skin';      // Bedrock (CurseForge)
