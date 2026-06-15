@@ -9,7 +9,7 @@ export const es: typeof en = {
   },
 
   search: {
-    placeholder:  'Buscar elementos...',
+    placeholder:  'Buscar mods, shaders o packs...',
     clearTitle:   'Limpiar busqueda',
     minLength:    'Escribe al menos {n} caracteres para buscar.',
     loadMore:     'Cargar mas',
@@ -257,5 +257,6 @@ export const es: typeof en = {
     generating: 'Generando...',
     error:      'No se pudo generar el codigo',
     preview:    'Vista previa',
+    getMod:     'Obtener el mod',
   },
 };

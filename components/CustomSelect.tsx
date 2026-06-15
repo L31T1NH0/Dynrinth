@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useId, useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { ChevronDownIcon } from '@heroicons/react/24/outline';
 
@@ -22,6 +22,7 @@ export function CustomSelect({ value, onChange, options, placeholder, width = 'w
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const listboxId = useId();
 
   const selectedOption = options.find(opt => opt.value === value);
   const displayLabel = selectedOption?.label || placeholder || '...';
@@ -43,6 +44,13 @@ export function CustomSelect({ value, onChange, options, placeholder, width = 'w
     <div ref={containerRef} className={`relative ${width}`}>
       <button
         onClick={() => setIsOpen(!isOpen)}
+        onKeyDown={e => {
+          if (e.key === 'Escape') setIsOpen(false);
+          if (e.key === 'ArrowDown' || e.key === 'Enter' || e.key === ' ') setIsOpen(true);
+        }}
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-controls={listboxId}
         className="w-full h-7 px-2.5 rounded text-ink-primary text-xs cursor-pointer transition-colors focus:ring-2 focus:ring-brand focus:outline-none bg-bg-surface hover:bg-bg-hover flex items-center justify-between"
       >
         <span className="min-w-0 flex items-center gap-1.5">
@@ -58,7 +66,9 @@ export function CustomSelect({ value, onChange, options, placeholder, width = 'w
 
       {isOpen && (
         <div
+          id={listboxId}
           ref={menuRef}
+          role="listbox"
           className="absolute top-full left-0 right-0 mt-1 bg-bg-surface border border-line-subtle rounded-md shadow-lg z-10 max-h-48 overflow-y-auto"
         >
           {options.map(opt => (
@@ -68,6 +78,8 @@ export function CustomSelect({ value, onChange, options, placeholder, width = 'w
                 onChange(opt.value);
                 setIsOpen(false);
               }}
+              role="option"
+              aria-selected={value === opt.value}
               className={`w-full text-left px-2.5 py-1.5 text-xs transition-colors ${
                 value === opt.value
                   ? 'bg-brand-glow text-brand font-medium'

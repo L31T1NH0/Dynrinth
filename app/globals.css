@@ -69,6 +69,17 @@
   animation: 0.2s ease-out both fadeIn;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
 :root {
   --font-outfit: 'Outfit', sans-serif;
   --font-jb-mono: 'JetBrains Mono', monospace;

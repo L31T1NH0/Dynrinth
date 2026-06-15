@@ -7,7 +7,7 @@ export const en = {
   },
 
   search: {
-    placeholder:  'Search items...',
+    placeholder:  'Search mods, shaders, or packs...',
     clearTitle:   'Clear search',
     minLength:    'Type at least {n} characters to search.',
     loadMore:     'Load more',
@@ -255,5 +255,6 @@ export const en = {
     generating: 'Generating...',
     error:      'Failed to generate code',
     preview:    'Preview',
+    getMod:     'Get the mod',
   },
 };

@@ -72,7 +72,7 @@ SCRAPER_PYTHON=
 
 - `CURSEFORGE_API_KEY`: necessario para habilitar buscas e resolucao de arquivos via CurseForge, incluindo Bedrock.
 - `KV_REST_API_URL` e `KV_REST_API_TOKEN`: opcionais, mas necessarios para persistir codigos curtos, alimentar rankings e usar rate limit com KV em producao.
-- `SCRAPER_PYTHON`: opcional; aponta para o Python com `requirements-scrapers.txt` instalado. Se ausente, a rota tenta `.venv-scrapers/bin/python`, `.venv/bin/python` e depois `python3`.
+- `SCRAPER_PYTHON`: opcional; aponta para o Python com `requirements-scrapers.txt` instalado. Se ausente, a rota usa `python3`.
 
 Sem `CURSEFORGE_API_KEY`, a aplicacao continua funcionando para `Modrinth`.
 

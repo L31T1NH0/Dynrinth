@@ -9,7 +9,7 @@ export const tr: typeof en = {
   },
 
   search: {
-    placeholder:  'Öğe ara...',
+    placeholder:  'Mod, shader veya paket ara...',
     clearTitle:   'Aramayı temizle',
     minLength:    'Aramak için en az {n} karakter girin.',
     loadMore:     'Daha fazla yükle',
@@ -257,5 +257,6 @@ export const tr: typeof en = {
     generating: 'Oluşturuluyor...',
     error:      'Kod oluşturulamadı',
     preview:    'Önizleme',
+    getMod:     'Modu al',
   },
 };

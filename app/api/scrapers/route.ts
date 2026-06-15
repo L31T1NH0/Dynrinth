@@ -1,6 +1,4 @@
 import { spawn } from 'node:child_process';
-import { existsSync } from 'node:fs';
-import path from 'node:path';
 import { type NextRequest, NextResponse } from 'next/server';
 import { checkRateLimit } from '@/lib/rateLimit';
 import { getRequestIp } from '@/lib/requestIp';
@@ -11,13 +9,8 @@ const VALID_SOURCES = new Set(['pvprp', 'optifine']);
 const VALID_ACTIONS = new Set(['versions', 'search', 'resolve', 'info']);
 
 function runScraper(args: string[]): Promise<unknown> {
-  const python = process.env.SCRAPER_PYTHON
-    ?? (existsSync(path.join(process.cwd(), '.venv-scrapers', 'bin', 'python'))
-      ? path.join(process.cwd(), '.venv-scrapers', 'bin', 'python')
-      : existsSync(path.join(process.cwd(), '.venv', 'bin', 'python'))
-        ? path.join(process.cwd(), '.venv', 'bin', 'python')
-        : 'python3');
-  const script = path.join(process.cwd(), 'tools', 'scrapers', 'providers.py');
+  const python = process.env.SCRAPER_PYTHON ?? 'python3';
+  const script = 'tools/scrapers/providers.py';
 
   return new Promise((resolve, reject) => {
     const child = spawn(python, [script, ...args], {
