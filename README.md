@@ -1,30 +1,31 @@
 # Dynrinth
 
-Dynrinth e uma aplicacao web em `Next.js` para montar listas de mods e outros conteudos de Minecraft a partir de `Modrinth`, `CurseForge` e `CurseForge Bedrock`, resolver dependencias e baixar tudo em um unico arquivo.
+Dynrinth e uma aplicacao web em `Next.js` para montar listas de mods e outros conteudos a partir de `Modrinth`, `CurseForge`, `CurseForge Bedrock` e `CurseForge Hytale`, resolver dependencias e baixar tudo em um unico arquivo.
 
 ## Visao Geral
 
-- Busca projetos em `Modrinth`, `CurseForge`, `CurseForge Bedrock` e fontes experimentais via scraper.
+- Busca projetos em `Modrinth`, `CurseForge`, `CurseForge Bedrock`, `CurseForge Hytale` e fontes experimentais via scraper.
 - Resolve dependencias obrigatorias automaticamente antes do download.
 - Mantem uma fila de itens com progresso individual e geral.
 - Exporta a fila como `.zip`, `.tar.gz` e, quando possivel, `.mrpack`.
 - Importa listas salvas em `JSON` e modpacks `.mrpack`.
-- Compartilha listas por URL compactada e por codigo curto de instalacao.
+- Compartilha listas por URL compactada e por codigo curto.
 - Exibe rankings de downloads quando ha backend KV configurado.
 - Suporta interface em `en`, `pt-BR`, `de` e `tr`.
 
 ## Recursos
 
-- Fontes suportadas: `Modrinth`, `CurseForge` (Java), `CurseForge Bedrock`, `PVPRP` (experimental) e `OptiFine` (experimental).
+- Fontes suportadas: `Modrinth`, `CurseForge` (Java), `CurseForge Bedrock`, `CurseForge Hytale`, `PVPRP` (experimental) e `OptiFine` (experimental).
 - Tipos de conteudo Java: `mod`, `plugin`, `datapack`, `resourcepack`, `shader`.
 - Tipos de conteudo Bedrock: `addon`, `map`, `texture-pack`, `script`, `skin`.
+- Tipos de conteudo Hytale: `mod`, `prefab`, `world`, `bootstrap`, `translation`.
 - Filtros por versao do Minecraft.
 - Filtros por loader: `Fabric`, `Forge`, `NeoForge`, `Quilt`.
 - Filtros por renderer de shader: `Iris`, `OptiFine`.
 - Filtros por plataforma de plugin: `Paper`, `Spigot`, `Bukkit`, `Purpur`, `Folia`, `Velocity`, `BungeeCord`, `Sponge`.
 - Filtros de compatibilidade client/server para mods no Modrinth.
 - Compartilhamento por URL compactada.
-- Compartilhamento por codigo curto de 10 caracteres para o fluxo `/dynrinth <code>` quando o backend KV esta configurado.
+- Compartilhamento por codigo curto de 10 caracteres quando o backend KV esta configurado.
 - Pagina `/rankings` para os downloads mais usados.
 
 ## Stack

@@ -78,14 +78,6 @@ export const pt: typeof en = {
     errors:      'erros',
   },
 
-  desktopInstall: {
-    defaultPath:  'Instala em .minecraft/mods por padrão.',
-    installReady: 'Instalar {n} na .minecraft',
-    installing:   'Instalando...',
-    done:         '{n} arquivo(s) instalado(s) em {path}',
-    error:        'Não foi possível instalar em .minecraft/mods',
-  },
-
   snackbar: {
     added:        'Adicionado à fila',
     datapacks:    'Use o CurseForge; datapacks do Modrinth são instáveis (podem baixar mods)',
@@ -149,6 +141,10 @@ export const pt: typeof en = {
       'texture-pack': 'Pacotes de textura',
       script:         'Scripts',
       skin:           'Skins',
+      prefab:         'Prefabs',
+      world:          'Mundos',
+      bootstrap:      'Bootstrap',
+      translation:    'Traduções',
     },
   },
 

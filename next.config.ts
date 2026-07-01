@@ -1,15 +1,6 @@
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
-  output: 'standalone',
-  outputFileTracingExcludes: {
-    '/*': [
-      './.git/**/*',
-      './.next/cache/**/*',
-      './src-tauri/**/*',
-      './target/**/*',
-    ],
-  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'cdn.modrinth.com' },

@@ -36,8 +36,6 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "src-tauri/resources",
-    "src-tauri/target"
+    "node_modules"
   ]
 }

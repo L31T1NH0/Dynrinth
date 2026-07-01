@@ -48,6 +48,14 @@ const BEDROCK_CLASS_IDS: Partial<Record<Filters['contentType'], number>> = {
   skin:           6925,
 };
 
+const HYTALE_CLASS_IDS: Partial<Record<Filters['contentType'], number>> = {
+  mod:         9137,
+  prefab:      9185,
+  world:       9184,
+  bootstrap:   9281,
+  translation: 10350,
+};
+
 function getGameId(source: Source): string {
   if (source === 'curseforge-bedrock') return String(BEDROCK_GAME_ID);
   if (source === 'curseforge-hytale') return String(HYTALE_GAME_ID);
@@ -55,7 +63,7 @@ function getGameId(source: Source): string {
 }
 
 function getClassId(source: Source, contentType: Filters['contentType']): number {
-  if (source === 'curseforge-hytale') return 0;
+  if (source === 'curseforge-hytale') return HYTALE_CLASS_IDS[contentType] ?? 0;
   const map = source === 'curseforge-bedrock' ? BEDROCK_CLASS_IDS : JAVA_CLASS_IDS;
   return map[contentType] ?? 0;
 }

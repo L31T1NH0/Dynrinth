@@ -2,6 +2,7 @@ import type { ComponentType, SVGProps } from 'react';
 import type { ContentType, Filters, Loader, PluginLoader, ShaderLoader, SortIndex, Source } from '@/lib/modrinth/types';
 import {
   CogIcon, ServerStackIcon, CircleStackIcon, PhotoIcon, SparklesIcon,
+  CubeTransparentIcon, GlobeAltIcon, CommandLineIcon, LanguageIcon,
 } from '@heroicons/react/24/outline';
 
 export const LOADERS: { id: Loader; label: string }[] = [
@@ -43,6 +44,10 @@ export const CONTENT_TYPES: { id: ContentType; usesLoader: boolean; sources: Sou
   { id: 'texture-pack', usesLoader: false, sources: ['curseforge-bedrock']       },
   { id: 'script',       usesLoader: false, sources: ['curseforge-bedrock']       },
   { id: 'skin',         usesLoader: false, sources: ['curseforge-bedrock']       },
+  { id: 'prefab',       usesLoader: false, sources: ['curseforge-hytale']        },
+  { id: 'world',        usesLoader: false, sources: ['curseforge-hytale']        },
+  { id: 'bootstrap',    usesLoader: false, sources: ['curseforge-hytale']        },
+  { id: 'translation',  usesLoader: false, sources: ['curseforge-hytale']        },
 ];
 
 export const BEDROCK_CONTENT_TYPES = new Set<ContentType>([
@@ -61,6 +66,10 @@ export const CONTENT_TYPE_ICONS: Partial<Record<ContentType, ComponentType<SVGPr
   datapack:     CircleStackIcon,
   resourcepack: PhotoIcon,
   shader:       SparklesIcon,
+  prefab:       CubeTransparentIcon,
+  world:        GlobeAltIcon,
+  bootstrap:    CommandLineIcon,
+  translation:  LanguageIcon,
 };
 
 export const SORT_OPTIONS: { id: SortIndex; label: string; sources?: Source[] }[] = [

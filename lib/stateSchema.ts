@@ -45,6 +45,10 @@ const CONTENT_TYPE_COMPATIBILITY: Record<ContentType, Source[]> = {
   'texture-pack': ['curseforge-bedrock'],
   script:         ['curseforge-bedrock'],
   skin:           ['curseforge-bedrock'],
+  prefab:         ['curseforge-hytale'],
+  world:          ['curseforge-hytale'],
+  bootstrap:      ['curseforge-hytale'],
+  translation:    ['curseforge-hytale'],
 };
 
 const VALID_CONTENT_TYPES = new Set<ContentType>(Object.keys(CONTENT_TYPE_COMPATIBILITY) as ContentType[]);

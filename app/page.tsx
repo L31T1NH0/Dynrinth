@@ -250,9 +250,6 @@ export default function Page() {
   const [justAddedIds, setJustAddedIds] = useState<Set<string>>(new Set());
   const justAddedTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  // ── Desktop local install ─────────────────────────────────────────────────
-  const [installFeedback, setInstallFeedback] = useState<string | null>(null);
-
   // ── Archive format ────────────────────────────────────────────────────────
   const [archiveFormat, setArchiveFormat] = useState<'zip' | 'tar.gz' | 'mrpack'>('zip');
 
@@ -393,22 +390,6 @@ export default function Page() {
     }
     void queue.downloadZip(archiveFormat, separateByVersion ?? false);
   }, [archiveFormat, canUseMrpack, queue, separateByVersion]);
-
-  const handleInstallToMinecraft = useCallback(async () => {
-    captureEvent({ type: 'queue_download', ts: Date.now(), itemCount: queue.readyCount, format: 'minecraft-mods' });
-    setInstallFeedback(null);
-    const result = await queue.installToMinecraft();
-    if (!result) {
-      setImportError(t.desktopInstall.error);
-      return;
-    }
-    setImportError(null);
-    setInstallFeedback(
-      t.desktopInstall.done
-        .replace('{n}', String(result.installed))
-        .replace('{path}', result.directory),
-    );
-  }, [queue, t]);
 
   const inQueue = (id: string) => renderedQueueEntries.some(e => e.id === id && e.filters.source === filters.source);
 
@@ -578,9 +559,7 @@ export default function Page() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          <div className="px-3.5 py-3 border-t border-line-subtle shrink-0 text-[11px] leading-relaxed text-ink-tertiary">
-            {t.desktopInstall.defaultPath}
-          </div>
+          <div className="px-3.5 py-3 border-t border-line-subtle shrink-0 text-[11px] leading-relaxed text-ink-tertiary" />
         </aside>
 
         {/* ── Center panel (search + results) ─────────────────────────────── */}
@@ -606,9 +585,7 @@ export default function Page() {
                   {ct.label}
                 </button>
               ))}
-              <div className="ml-auto shrink-0 text-[11px] text-ink-tertiary whitespace-nowrap">
-                {t.desktopInstall.defaultPath}
-              </div>
+              <div className="ml-auto shrink-0" />
             </div>
             {mobileFiltersOpen && (
               <div className="flex items-center gap-3 px-4 py-3 flex-wrap border-t border-line-subtle bg-bg-card/40 animate-fadeIn">
@@ -1157,30 +1134,20 @@ export default function Page() {
                 disabled
                 className="w-full h-11 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 opacity-40 cursor-not-allowed"
               >
-                <Spinner size={13} /> {t.desktopInstall.installing} {queue.zipProgress}%
+                {queue.entries.filter(e => e.status === 'downloading').length === 1
+                  ? <><Spinner size={13} /> {t.footer.downloading} {queue.zipProgress}%</>
+                  : <><Spinner size={13} /> {t.footer.creatingArchive.replace('{format}', archiveFormat === 'tar.gz' ? '.tar.gz' : 'ZIP')} {queue.zipProgress}%</>
+                }
               </button>
-            ) : (
-              <button
-                onClick={handleInstallToMinecraft}
-                disabled={hasHydrated ? renderedReadyCount === 0 : undefined}
-                className="w-full h-11 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover hover:border-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <CubeIcon className="w-[13px] h-[13px]" />
-                {t.desktopInstall.installReady.replace('{n}', String(renderedReadyCount))}
-              </button>
-            )}
-
-            {!queue.isDownloading && renderedReadyCount > 0 && (
-              <div className="flex w-full h-8 rounded-lg overflow-hidden border border-line-subtle mt-2.5">
+            ) : renderedReadyCount > 1 ? (
+              <div className="flex w-full h-11 rounded-lg overflow-hidden border border-brand">
                 <button
                   onClick={handleDownload}
                   disabled={hasHydrated ? (archiveFormat === 'mrpack' && !canUseMrpack) : undefined}
-                  className="flex-1 bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="flex-1 bg-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <ArrowDownTrayIcon className="w-[11px] h-[11px]" />
-                  {renderedReadyCount > 1
-                    ? t.footer.downloadFiles.replace('{n}', String(renderedReadyCount))
-                    : t.footer.downloadFile}
+                  <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
+                  {t.footer.downloadFiles.replace('{n}', String(renderedReadyCount))}
                 </button>
                 <button
                   onClick={() => setArchiveFormat(f => {
@@ -1189,11 +1156,20 @@ export default function Page() {
                     return 'zip';
                   })}
                   title={t.footer.toggleFormat}
-                  className="px-3 bg-bg-surface text-ink-secondary text-[10px] font-mono font-semibold border-l border-line-subtle hover:text-white hover:bg-bg-hover transition-colors"
+                  className="px-3 bg-brand text-brand-dark text-[10px] font-mono font-semibold border-l border-black/20 hover:bg-brand-hover transition-colors"
                 >
                   .{archiveFormat}
                 </button>
               </div>
+            ) : (
+              <button
+                onClick={handleDownload}
+                disabled={hasHydrated ? (renderedReadyCount === 0 || (archiveFormat === 'mrpack' && !canUseMrpack)) : undefined}
+                className="w-full h-11 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover hover:border-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
+                {t.footer.downloadFile}
+              </button>
             )}
 
             {/* Secondary queue actions */}
@@ -1237,12 +1213,6 @@ export default function Page() {
                 {copyFeedback ? t.footer.copied : t.footer.share}
               </button>
             </div>
-
-            {installFeedback && (
-              <div className="mt-2.5 mb-2 text-[10px] text-brand text-center break-words">
-                {installFeedback}
-              </div>
-            )}
 
             {failedCount !== null && failedCount > 0 && (
               <div className="mb-2 text-[10px] text-amber-400 text-center">

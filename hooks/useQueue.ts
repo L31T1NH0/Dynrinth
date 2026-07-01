@@ -420,7 +420,6 @@ export interface UseQueueReturn {
   retry:              (queueKey: string) => void;
   clear:              () => void;
   downloadZip:        (format?: 'zip' | 'tar.gz', separateByVersion?: boolean) => Promise<void>;
-  installToMinecraft: () => Promise<{ installed: number; directory: string } | null>;
   exportMrpack:       () => Promise<void>;
 }
 
@@ -514,58 +513,6 @@ export function useQueue(): UseQueueReturn {
    
   }, [state.entries, state.isDownloading]);
 
-  const installToMinecraft = useCallback(async () => {
-    const ready = state.entries.filter(
-      (e): e is ReadyEntry => e.status === 'ready' && e.resolved !== undefined,
-    ).sort((a, b) => a.resolved.file.size - b.resolved.file.size);
-    if (!ready.length || state.isDownloading) return null;
-
-    dispatch({ type: 'SET_DOWNLOADING', value: true });
-    dispatch({ type: 'SET_ZIP_PROGRESS', progress: 5 });
-    ready.forEach(e => {
-      dispatch({ type: 'SET_STATUS', queueKey: e.queueKey, status: 'downloading' });
-      dispatch({ type: 'SET_PROGRESS', queueKey: e.queueKey, progress: 10 });
-    });
-
-    try {
-      const res = await fetch('/api/desktop/install', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          items: ready.map(e => ({
-            id:       e.queueKey,
-            filename: e.resolved.file.filename,
-            url:      e.resolved.file.url,
-          })),
-        }),
-      });
-
-      if (!res.ok) throw new Error('install unavailable');
-      const data = await res.json() as {
-        installed: number;
-        directory: string;
-        failed: Array<{ id: string; reason: string }>;
-      };
-      const failed = new Map(data.failed.map(item => [item.id, item.reason]));
-
-      ready.forEach(e => {
-        if (failed.has(e.queueKey)) {
-          dispatch({ type: 'ERROR', queueKey: e.queueKey, reason: 'network' });
-        } else {
-          dispatch({ type: 'SET_PROGRESS', queueKey: e.queueKey, progress: 100 });
-          dispatch({ type: 'SET_STATUS', queueKey: e.queueKey, status: 'done' });
-        }
-      });
-      dispatch({ type: 'SET_ZIP_PROGRESS', progress: 100 });
-      return { installed: data.installed, directory: data.directory };
-    } catch {
-      ready.forEach(e => dispatch({ type: 'ERROR', queueKey: e.queueKey, reason: 'network' }));
-      return null;
-    } finally {
-      dispatch({ type: 'SET_DOWNLOADING', value: false });
-    }
-  }, [state.entries, state.isDownloading]);
-
   const readyCount = state.entries.filter(e => e.status === 'ready').length;
 
   const exportMrpack = useCallback(async () => {
@@ -586,6 +533,6 @@ export function useQueue(): UseQueueReturn {
     entries: state.entries, dependencyWarnings: state.dependencyWarnings,
     conflictWarnings: state.conflictWarnings,
     isDownloading: state.isDownloading, zipProgress: state.zipProgress,
-    readyCount, add, remove, retry, clear, downloadZip, installToMinecraft, exportMrpack,
+    readyCount, add, remove, retry, clear, downloadZip, exportMrpack,
   };
 }

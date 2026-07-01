@@ -78,14 +78,6 @@ export const tr: typeof en = {
     errors:      'hata',
   },
 
-  desktopInstall: {
-    defaultPath:  'Varsayılan olarak .minecraft/mods klasörüne kurar.',
-    installReady: '{n} ögeyi .minecraft klasörüne kur',
-    installing:   'Kuruluyor...',
-    done:         '{path} içine {n} dosya kuruldu',
-    error:        '.minecraft/mods içine kurulum yapılamadı',
-  },
-
   snackbar: {
     added:        'Kuyruğa eklendi',
     datapacks:    'Modrinth veri paketleri güvenilmez (mod indirebilir). Bunun yerine CurseForge kullanın.',
@@ -149,6 +141,10 @@ export const tr: typeof en = {
       'texture-pack': 'Doku paketleri',
       script:         'Scriptler',
       skin:           'Skinler',
+      prefab:         'Prefablar',
+      world:          'Dunyalar',
+      bootstrap:      'Bootstrap',
+      translation:    'Ceviriler',
     },
   },
 

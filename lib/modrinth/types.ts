@@ -9,7 +9,8 @@ export type SortIndex    =
   | 'oldest' | 'name_az' | 'name_za' | 'least_downloads';
 export type ContentType  =
   | 'mod' | 'plugin' | 'datapack' | 'resourcepack' | 'shader'  // Java / Modrinth
-  | 'addon' | 'map' | 'texture-pack' | 'script' | 'skin';      // Bedrock (CurseForge)
+  | 'addon' | 'map' | 'texture-pack' | 'script' | 'skin'      // Bedrock (CurseForge)
+  | 'prefab' | 'world' | 'bootstrap' | 'translation';         // Hytale (CurseForge)
 
 /**
  * Single source of truth for all active filters.

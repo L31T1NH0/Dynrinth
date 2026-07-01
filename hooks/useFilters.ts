@@ -6,7 +6,7 @@ import * as modrinthService   from '@/lib/modrinth/service';
 import * as curseforgeService from '@/lib/curseforge/service';
 import type { ContentType, Filters, Loader, PluginLoader, ShaderLoader, SortIndex, Source } from '@/lib/modrinth/types';
 import { captureEvent } from '@/lib/debugCapture';
-import { BEDROCK_CONTENT_TYPES, DEFAULT_FILTERS, SOURCE_DEFAULT_CONTENT_TYPE, sortOptionsForSource } from '@/lib/filterConfig';
+import { BEDROCK_CONTENT_TYPES, CONTENT_TYPES, DEFAULT_FILTERS, SOURCE_DEFAULT_CONTENT_TYPE, sortOptionsForSource } from '@/lib/filterConfig';
 
 export interface UseFiltersReturn {
   filters:                       Filters;
@@ -109,8 +109,11 @@ export function useFilters(): UseFiltersReturn {
     setFilters(prev => {
       const toBedrockBoundary   = s === 'curseforge-bedrock' && !BEDROCK_CONTENT_TYPES.has(prev.contentType);
       const fromBedrockBoundary = s !== 'curseforge-bedrock' &&  BEDROCK_CONTENT_TYPES.has(prev.contentType);
+      const currentTypeAllowed = CONTENT_TYPES.some(ct => ct.id === prev.contentType && ct.sources.includes(s));
       const sourceDefault = SOURCE_DEFAULT_CONTENT_TYPE[s];
-      const contentType = sourceDefault ?? (toBedrockBoundary ? 'addon' : fromBedrockBoundary ? 'mod' : prev.contentType);
+      const contentType = currentTypeAllowed
+        ? prev.contentType
+        : sourceDefault ?? (toBedrockBoundary ? 'addon' : fromBedrockBoundary ? 'mod' : 'mod');
       const sortIndex = sortOptionsForSource(s).some(option => option.id === prev.sortIndex)
         ? prev.sortIndex
         : s === 'pvprp' ? 'newest' : 'relevance';
