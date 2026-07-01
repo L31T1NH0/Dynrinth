@@ -5,8 +5,12 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:desktop": "next build && node scripts/prepare-tauri-next.mjs",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint app components hooks lib locales scripts next.config.ts",
+    "tauri": "tauri",
+    "desktop:dev": "tauri dev",
+    "desktop:build": "tauri build"
   },
   "dependencies": {
     "@chenglou/pretext": "^0.0.6",
@@ -23,6 +27,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",
+    "@tauri-apps/cli": "^2.11.3",
     "@types/node": "^25.6.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",

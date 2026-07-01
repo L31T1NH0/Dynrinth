@@ -3,6 +3,7 @@ import { checkRateLimit } from '@/lib/rateLimit';
 import { getRequestIp } from '@/lib/requestIp';
 
 const CF_BASE = 'https://api.curseforge.com/v1';
+const HYTALE_GAME_ID = '70216';
 
 const NUMERIC_ID = /^\d+$/;
 
@@ -40,6 +41,22 @@ function hasOnlyAllowedParams(params: URLSearchParams, allowed: Set<string>): bo
   return [...params.keys()].every(key => allowed.has(key));
 }
 
+function normalizePath(path: string): { path: string } | { error: NextResponse } {
+  const parsed = new URL(path, CF_BASE);
+  const usesHytaleAlias =
+    parsed.pathname === '/games/hytale/versions' ||
+    parsed.searchParams.get('gameId') === 'hytale';
+  if (!usesHytaleAlias) return { path };
+
+  if (parsed.pathname === '/games/hytale/versions') {
+    parsed.pathname = `/games/${HYTALE_GAME_ID}/versions`;
+  }
+  if (parsed.searchParams.get('gameId') === 'hytale') {
+    parsed.searchParams.set('gameId', HYTALE_GAME_ID);
+  }
+  return { path: `${parsed.pathname}${parsed.search}` };
+}
+
 function isPathAllowed(path: string): { valid: true } | { valid: false; reason: string } {
   if (!path.startsWith('/')) return { valid: false, reason: 'Path must start with "/".' };
 
@@ -63,7 +80,7 @@ function isPathAllowed(path: string): { valid: true } | { valid: false; reason: 
       : { valid: false, reason: 'Disallowed query parameter for /mods/search.' };
   }
 
-  if (pathname === '/minecraft/version' || pathname === '/games/78022/versions') {
+  if (pathname === '/minecraft/version' || pathname === '/games/78022/versions' || pathname === `/games/${HYTALE_GAME_ID}/versions` || pathname === '/games/hytale/versions') {
     return [...params.keys()].length === 0
       ? { valid: true }
       : { valid: false, reason: `Query parameters are not allowed for ${pathname}.` };
@@ -119,7 +136,10 @@ export async function GET(request: NextRequest) {
     return invalidPathResponse(validation.reason);
   }
 
-  const upstream = await fetch(`${CF_BASE}${path}`, {
+  const normalized = normalizePath(path);
+  if ('error' in normalized) return normalized.error;
+
+  const upstream = await fetch(`${CF_BASE}${normalized.path}`, {
     headers: { 'x-api-key': apiKey },
   });
 

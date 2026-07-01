@@ -76,6 +76,14 @@ export const en = {
     errors:      'errors',
   },
 
+  desktopInstall: {
+    defaultPath:  'Installs to .minecraft/mods by default.',
+    installReady: 'Install {n} to .minecraft',
+    installing:   'Installing...',
+    done:         'Installed {n} file(s) in {path}',
+    error:        'Could not install to .minecraft/mods',
+  },
+
   snackbar: {
     added:        'Added to queue',
     datapacks:    'Use CurseForge instead; Modrinth datapacks are unreliable (may download mods instead)',
@@ -124,6 +132,7 @@ export const en = {
       modrinth:   'Modrinth',
       curseforge: 'CurseForge',
       bedrock:    'Bedrock',
+      hytale:     'Hytale',
       pvprp:      'PVPRP',
       optifine:   'OptiFine',
     },

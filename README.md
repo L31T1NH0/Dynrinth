@@ -26,7 +26,6 @@ Dynrinth e uma aplicacao web em `Next.js` para montar listas de mods e outros co
 - Compartilhamento por URL compactada.
 - Compartilhamento por codigo curto de 10 caracteres para o fluxo `/dynrinth <code>` quando o backend KV esta configurado.
 - Pagina `/rankings` para os downloads mais usados.
-- Pagina `/install` com instrucoes do mod/plugin companheiro do Dynrinth.
 
 ## Stack
 
@@ -70,7 +69,7 @@ KV_REST_API_TOKEN=
 SCRAPER_PYTHON=
 ```
 
-- `CURSEFORGE_API_KEY`: necessario para habilitar buscas e resolucao de arquivos via CurseForge, incluindo Bedrock.
+- `CURSEFORGE_API_KEY`: necessario para habilitar buscas e resolucao de arquivos via CurseForge, incluindo Bedrock e Hytale.
 - `KV_REST_API_URL` e `KV_REST_API_TOKEN`: opcionais, mas necessarios para persistir codigos curtos, alimentar rankings e usar rate limit com KV em producao.
 - `SCRAPER_PYTHON`: opcional; aponta para o Python com `requirements-scrapers.txt` instalado. Se ausente, a rota usa `python3`.
 
@@ -113,8 +112,6 @@ Aplicacao local: `http://localhost:3000`
 
 - `/`: busca, filtros, fila, importacao, exportacao e download.
 - `/rankings`: ranking de downloads por fonte, tipo e versao.
-- `/install`: landing page do mod/plugin companheiro para instalacao por codigo.
-- `/mod`: redireciona permanentemente para `/install`.
 - `/pack/[code]`: pagina publica de uma lista compartilhada por codigo.
 
 ## API Interna
@@ -172,7 +169,6 @@ Dynrinth/
 Arquivos centrais:
 
 - `app/page.tsx`: fluxo principal de busca, fila, importacao, exportacao e download.
-- `app/install/page.tsx`: pagina do mod/plugin companheiro do Dynrinth.
 - `app/rankings/RankingsClient.tsx`: interface do leaderboard.
 - `lib/modrinth/service.ts`: integracao direta com a API do Modrinth.
 - `lib/curseforge/service.ts`: integracao com o proxy server-side do CurseForge.

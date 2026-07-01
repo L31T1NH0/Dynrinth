@@ -2,8 +2,12 @@
 /node_modules
 tsconfig.tsbuildinfo
 /.next
+/src-tauri/resources/next-server
+/src-tauri/target
 .venv
 .venv-scrapers
 .env.local
 dynrinth-design-preview.html
 *.mrpack
+/src-tauri
+scripts/prepare-tauri-next.mjs

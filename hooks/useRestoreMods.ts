@@ -203,7 +203,7 @@ export function useRestoreMods(
           item => {
             const service = item.filters.source === 'modrinth'
               ? modrinthService
-              : item.filters.source === 'curseforge' || item.filters.source === 'curseforge-bedrock'
+              : item.filters.source === 'curseforge' || item.filters.source === 'curseforge-bedrock' || item.filters.source === 'curseforge-hytale'
                 ? curseforgeService
                 : scraperService;
             return service.fetchProjectInfo(item.id);

@@ -63,7 +63,7 @@ export function useFilters(): UseFiltersReturn {
     setFilters(prev => ({ ...prev, version: '' }));
     const fetchVersions = filters.source === 'modrinth'
       ? modrinthService.fetchGameVersions()
-      : filters.source === 'curseforge' || filters.source === 'curseforge-bedrock'
+      : filters.source === 'curseforge' || filters.source === 'curseforge-bedrock' || filters.source === 'curseforge-hytale'
         ? curseforgeService.fetchGameVersions(filters.source)
         : import('@/lib/scrapers/service').then(service => service.fetchGameVersions(filters.source as 'pvprp' | 'optifine'));
     fetchVersions

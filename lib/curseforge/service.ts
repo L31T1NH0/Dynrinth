@@ -20,6 +20,7 @@ import type {
 
 const JAVA_GAME_ID    = 432;
 const BEDROCK_GAME_ID = 78022;
+const HYTALE_GAME_ID  = 70216;
 
 /** Results per page — matches the Modrinth service constant. */
 export const PAGE_SIZE = 20;
@@ -47,7 +48,14 @@ const BEDROCK_CLASS_IDS: Partial<Record<Filters['contentType'], number>> = {
   skin:           6925,
 };
 
+function getGameId(source: Source): string {
+  if (source === 'curseforge-bedrock') return String(BEDROCK_GAME_ID);
+  if (source === 'curseforge-hytale') return String(HYTALE_GAME_ID);
+  return String(JAVA_GAME_ID);
+}
+
 function getClassId(source: Source, contentType: Filters['contentType']): number {
+  if (source === 'curseforge-hytale') return 0;
   const map = source === 'curseforge-bedrock' ? BEDROCK_CLASS_IDS : JAVA_CLASS_IDS;
   return map[contentType] ?? 0;
 }
@@ -119,6 +127,17 @@ export async function fetchGameVersions(source: Source): Promise<string[]> {
       return 0;
     });
   }
+  if (source === 'curseforge-hytale') {
+    const r = await fetch(cfProxy(`/games/${HYTALE_GAME_ID}/versions`));
+    if (!r.ok) throw new Error(`CF fetchGameVersions (Hytale): HTTP ${r.status}`);
+    const data: CfBedrockVersionsResponse = await r.json();
+    const versions = [...new Set(data.data.flatMap(g => g.versions))];
+    return versions.sort((a, b) => {
+      if (a === 'Early Access') return 1;
+      if (b === 'Early Access') return -1;
+      return b.localeCompare(a, undefined, { numeric: true, sensitivity: 'base' });
+    });
+  }
   const r = await fetch(cfProxy('/minecraft/version'));
   if (!r.ok) throw new Error(`CF fetchGameVersions: HTTP ${r.status}`);
   const data: CfVersionsResponse = await r.json();
@@ -138,18 +157,19 @@ export async function searchProjects(
   signal?: AbortSignal,
 ): Promise<SearchPage> {
   const params = new URLSearchParams({
-    gameId:    String(filters.source === 'curseforge-bedrock' ? BEDROCK_GAME_ID : JAVA_GAME_ID),
-    classId:   String(getClassId(filters.source, filters.contentType)),
+    gameId:    getGameId(filters.source),
     index:     String(offset),
     pageSize:  String(PAGE_SIZE),
     sortField: CF_SORT_FIELDS[filters.sortIndex],
     sortOrder: 'desc',
   });
+  const classId = getClassId(filters.source, filters.contentType);
+  if (classId > 0) params.set('classId', String(classId));
 
   if (filters.version) params.set('gameVersion', filters.version);
   if (query)           params.set('searchFilter', query);
 
-  if (filters.contentType === 'mod' && filters.source !== 'curseforge-bedrock') {
+  if (filters.contentType === 'mod' && filters.source !== 'curseforge-bedrock' && filters.source !== 'curseforge-hytale') {
     const loaderType = LOADER_TYPES[filters.loader];
     if (loaderType !== undefined) params.set('modLoaderType', String(loaderType));
   }
@@ -183,7 +203,7 @@ export async function resolveProjectVersion(
 
     if (filters.version) params.set('gameVersion', filters.version);
 
-    if (filters.contentType === 'mod' && filters.source !== 'curseforge-bedrock') {
+    if (filters.contentType === 'mod' && filters.source !== 'curseforge-bedrock' && filters.source !== 'curseforge-hytale') {
       const loaderType = LOADER_TYPES[filters.loader];
       if (loaderType !== undefined) params.set('modLoaderType', String(loaderType));
     }

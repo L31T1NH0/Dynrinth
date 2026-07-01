@@ -78,6 +78,14 @@ export const pt: typeof en = {
     errors:      'erros',
   },
 
+  desktopInstall: {
+    defaultPath:  'Instala em .minecraft/mods por padrão.',
+    installReady: 'Instalar {n} na .minecraft',
+    installing:   'Instalando...',
+    done:         '{n} arquivo(s) instalado(s) em {path}',
+    error:        'Não foi possível instalar em .minecraft/mods',
+  },
+
   snackbar: {
     added:        'Adicionado à fila',
     datapacks:    'Use o CurseForge; datapacks do Modrinth são instáveis (podem baixar mods)',
@@ -126,6 +134,7 @@ export const pt: typeof en = {
       modrinth:   'Modrinth',
       curseforge: 'CurseForge',
       bedrock:    'Bedrock',
+      hytale:     'Hytale',
       pvprp:      'PVPRP',
       optifine:   'OptiFine',
     },

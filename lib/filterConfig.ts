@@ -33,7 +33,7 @@ export const LOADER_PRIMARY_COUNT        = 2; // fabric, forge
 export const PLUGIN_LOADER_PRIMARY_COUNT = 3; // paper, spigot, bukkit
 
 export const CONTENT_TYPES: { id: ContentType; usesLoader: boolean; sources: Source[] }[] = [
-  { id: 'mod',          usesLoader: true,  sources: ['modrinth', 'curseforge', 'optifine'] },
+  { id: 'mod',          usesLoader: true,  sources: ['modrinth', 'curseforge', 'curseforge-hytale', 'optifine'] },
   { id: 'plugin',       usesLoader: false, sources: ['modrinth', 'curseforge']   },
   { id: 'datapack',     usesLoader: false, sources: ['modrinth', 'curseforge']   },
   { id: 'resourcepack', usesLoader: false, sources: ['modrinth', 'curseforge', 'pvprp'] },
@@ -50,8 +50,9 @@ export const BEDROCK_CONTENT_TYPES = new Set<ContentType>([
 ]);
 
 export const SOURCE_DEFAULT_CONTENT_TYPE: Partial<Record<Source, ContentType>> = {
-  pvprp:    'resourcepack',
-  optifine: 'mod',
+  pvprp:              'resourcepack',
+  optifine:           'mod',
+  'curseforge-hytale': 'mod',
 };
 
 export const CONTENT_TYPE_ICONS: Partial<Record<ContentType, ComponentType<SVGProps<SVGSVGElement>>>> = {
@@ -63,10 +64,10 @@ export const CONTENT_TYPE_ICONS: Partial<Record<ContentType, ComponentType<SVGPr
 };
 
 export const SORT_OPTIONS: { id: SortIndex; label: string; sources?: Source[] }[] = [
-  { id: 'relevance',       label: 'Relevance',       sources: ['modrinth', 'curseforge', 'curseforge-bedrock', 'optifine'] },
-  { id: 'downloads',       label: 'Downloads',       sources: ['modrinth', 'curseforge', 'curseforge-bedrock', 'pvprp'] },
-  { id: 'updated',         label: 'Updated',         sources: ['modrinth', 'curseforge', 'curseforge-bedrock'] },
-  { id: 'newest',          label: 'Newest',          sources: ['modrinth', 'curseforge', 'curseforge-bedrock', 'pvprp', 'optifine'] },
+  { id: 'relevance',       label: 'Relevance',       sources: ['modrinth', 'curseforge', 'curseforge-bedrock', 'curseforge-hytale', 'optifine'] },
+  { id: 'downloads',       label: 'Downloads',       sources: ['modrinth', 'curseforge', 'curseforge-bedrock', 'curseforge-hytale', 'pvprp'] },
+  { id: 'updated',         label: 'Updated',         sources: ['modrinth', 'curseforge', 'curseforge-bedrock', 'curseforge-hytale'] },
+  { id: 'newest',          label: 'Newest',          sources: ['modrinth', 'curseforge', 'curseforge-bedrock', 'curseforge-hytale', 'pvprp', 'optifine'] },
   { id: 'follows',         label: 'Follows',         sources: ['modrinth'] },
   { id: 'oldest',          label: 'Oldest',          sources: ['pvprp', 'optifine'] },
   { id: 'name_az',         label: 'A-Z',             sources: ['pvprp', 'optifine'] },

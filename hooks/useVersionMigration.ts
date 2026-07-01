@@ -9,7 +9,7 @@ import { CURRENT_FORMAT_VERSION } from '@/lib/stateSchema';
 
 function getService(source: string) {
   if (source === 'modrinth') return modrinthService;
-  if (source === 'curseforge' || source === 'curseforge-bedrock') return curseforgeService;
+  if (source === 'curseforge' || source === 'curseforge-bedrock' || source === 'curseforge-hytale') return curseforgeService;
   return scraperService;
 }
 

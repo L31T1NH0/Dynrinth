@@ -7,8 +7,7 @@ import {
   MagnifyingGlassIcon, PlusIcon, CheckIcon, CheckCircleIcon, XMarkIcon,
   ArrowUpTrayIcon, ArrowDownTrayIcon, LinkIcon, ArrowPathIcon,
   ExclamationTriangleIcon, InformationCircleIcon, ArchiveBoxIcon, CubeIcon,
-  TrophyIcon, ClipboardIcon, CommandLineIcon, ChevronDownIcon,
-  FunnelIcon,
+  ChevronDownIcon, FunnelIcon,
 } from '@heroicons/react/24/outline';
 import { TextClamp } from '@/components/TextClamp';
 import { Wordmark } from '@/components/Wordmark';
@@ -218,16 +217,16 @@ export default function Page() {
     useVersionMigration(filters, queue, restoreMods);
 
   const sourceOptions = [
-    { value: 'modrinth',           label: t.filters.sources.modrinth,   icon: '/Modrinth_icon_light.webp' },
-    { value: 'curseforge',         label: t.filters.sources.curseforge, icon: '/curseforge.svg' },
-    { value: 'curseforge-bedrock', label: t.filters.sources.bedrock,    icon: '/bedrock.webp' },
+    { value: 'modrinth',           label: t.filters.sources.modrinth,   icon: '/modrinth.webp' },
+    { value: 'curseforge',         label: t.filters.sources.curseforge, icon: '/curseforge.webp' },
+    { value: 'curseforge-bedrock', label: t.filters.sources.bedrock,    icon: '/bedrock-icon.webp' },
+    { value: 'curseforge-hytale',  label: t.filters.sources.hytale,     icon: '/hytale.webp' },
   ] as const;
 
   const contentTypes     = CONTENT_TYPES.map(ct => ({ ...ct, label: contentTypeLabel(ct.id, t) }));
   const sortOptions      = sortOptionsForSource(filters.source);
   const currentTypeInfo  = CONTENT_TYPES.find(ct => ct.id === filters.contentType)!;
   const currentTypeLabel = contentTypeLabel(filters.contentType, t);
-  const canUseMinecraftShare = filters.source === 'modrinth';
   const canUseMrpack = filters.source === 'modrinth' && canExportMrpack;
 
   // ── Restore (import / share URL) ─────────────────────────────────────────
@@ -251,11 +250,8 @@ export default function Page() {
   const [justAddedIds, setJustAddedIds] = useState<Set<string>>(new Set());
   const justAddedTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
-  // ── Minecraft code share ──────────────────────────────────────────────────
-  const [mcCode,         setMcCode]         = useState<string | null>(null);
-  const [mcCodeCopied,   setMcCodeCopied]   = useState(false);
-  const [mcCodeLoading,  setMcCodeLoading]  = useState(false);
-  const mcCodeCopyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ── Desktop local install ─────────────────────────────────────────────────
+  const [installFeedback, setInstallFeedback] = useState<string | null>(null);
 
   // ── Archive format ────────────────────────────────────────────────────────
   const [archiveFormat, setArchiveFormat] = useState<'zip' | 'tar.gz' | 'mrpack'>('zip');
@@ -388,46 +384,6 @@ export default function Page() {
     setTimeout(() => setCopyFeedback(false), 2000);
   }, [getExportState, t]);
 
-  const handleMinecraftShare = useCallback(async () => {
-    if (!canUseMinecraftShare) return;
-    setMcCodeLoading(true);
-    setMcCode(null);
-    try {
-      const res = await fetch('/api/codes', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ state: getExportState() }),
-      });
-      if (!res.ok) throw new Error('failed');
-      const { code } = await res.json() as { code: string };
-      setMcCode(code);
-    } catch {
-      setImportError(t.minecraft.error);
-    } finally {
-      setMcCodeLoading(false);
-    }
-  }, [canUseMinecraftShare, getExportState, t]);
-
-  useEffect(() => {
-    if (!canUseMinecraftShare) {
-      setMcCode(null);
-      setMcCodeCopied(false);
-    }
-  }, [canUseMinecraftShare]);
-
-  const handleMcCodeCopy = useCallback(async (code: string) => {
-    const cmd = t.minecraft.command.replace('{code}', code);
-    try {
-      await navigator.clipboard.writeText(cmd);
-    } catch {
-      prompt(cmd);
-      return;
-    }
-    setMcCodeCopied(true);
-    if (mcCodeCopyTimer.current) clearTimeout(mcCodeCopyTimer.current);
-    mcCodeCopyTimer.current = setTimeout(() => setMcCodeCopied(false), 2000);
-  }, [t]);
-
   const handleDownload = useCallback(() => {
     if (archiveFormat === 'mrpack' && !canUseMrpack) return;
     captureEvent({ type: 'queue_download', ts: Date.now(), itemCount: queue.readyCount, format: archiveFormat });
@@ -437,6 +393,22 @@ export default function Page() {
     }
     void queue.downloadZip(archiveFormat, separateByVersion ?? false);
   }, [archiveFormat, canUseMrpack, queue, separateByVersion]);
+
+  const handleInstallToMinecraft = useCallback(async () => {
+    captureEvent({ type: 'queue_download', ts: Date.now(), itemCount: queue.readyCount, format: 'minecraft-mods' });
+    setInstallFeedback(null);
+    const result = await queue.installToMinecraft();
+    if (!result) {
+      setImportError(t.desktopInstall.error);
+      return;
+    }
+    setImportError(null);
+    setInstallFeedback(
+      t.desktopInstall.done
+        .replace('{n}', String(result.installed))
+        .replace('{path}', result.directory),
+    );
+  }, [queue, t]);
 
   const inQueue = (id: string) => renderedQueueEntries.some(e => e.id === id && e.filters.source === filters.source);
 
@@ -488,7 +460,7 @@ export default function Page() {
                   />
                 </div>
 
-                {currentTypeInfo.usesLoader && filters.source !== 'optifine' && (
+                {currentTypeInfo.usesLoader && filters.source !== 'optifine' && filters.source !== 'curseforge-hytale' && (
                   <>
                     <p className="text-mono text-[9px] font-medium text-ink-tertiary uppercase tracking-widest px-3.5 pt-2.5 pb-1.5">{t.filters.loader}</p>
                     <div className="px-3.5">
@@ -606,23 +578,8 @@ export default function Page() {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Bottom links */}
-          <div className="px-1.5 py-2 border-t border-line-subtle shrink-0">
-            <a
-              href="/rankings"
-              className="flex items-center gap-2 px-3 py-1.5 rounded text-[12.5px] font-medium transition-all duration-100 border text-ink-secondary hover:text-ink-primary hover:bg-bg-hover border-transparent"
-            >
-              <TrophyIcon className="w-3 h-3 shrink-0" />
-              Rankings
-            </a>
-            <a
-              href="/install"
-              className="flex items-center gap-2 px-3 py-1.5 rounded text-[12.5px] font-medium transition-all duration-100 border text-ink-secondary hover:text-ink-primary hover:bg-bg-hover border-transparent"
-            >
-              <CommandLineIcon className="w-3 h-3 shrink-0" />
-              {t.nav.installMod}
-              <span className="text-[9px] font-bold uppercase px-1 py-px rounded bg-brand text-brand-dark leading-none">New</span>
-            </a>
+          <div className="px-3.5 py-3 border-t border-line-subtle shrink-0 text-[11px] leading-relaxed text-ink-tertiary">
+            {t.desktopInstall.defaultPath}
           </div>
         </aside>
 
@@ -649,20 +606,8 @@ export default function Page() {
                   {ct.label}
                 </button>
               ))}
-              <div className="ml-auto flex items-center gap-3 shrink-0">
-                <a
-                  href="/install"
-                  className="flex items-center gap-1 text-[11px] text-ink-secondary hover:text-ink-primary transition-colors whitespace-nowrap"
-                >
-                  {t.nav.installMod}
-                  <span className="text-[8px] font-bold uppercase px-1 py-px rounded bg-brand text-brand-dark leading-none">New</span>
-                </a>
-                <a
-                  href="/rankings"
-                  className="text-[11px] text-ink-secondary hover:text-ink-primary transition-colors whitespace-nowrap"
-                >
-                  {t.rankings.title}
-                </a>
+              <div className="ml-auto shrink-0 text-[11px] text-ink-tertiary whitespace-nowrap">
+                {t.desktopInstall.defaultPath}
               </div>
             </div>
             {mobileFiltersOpen && (
@@ -679,7 +624,7 @@ export default function Page() {
                   options={versions.length ? versions.map(v => ({ value: v, label: v })) : [{ value: '', label: '...' }]}
                   width="w-28"
                 />
-                {currentTypeInfo.usesLoader && filters.source !== 'optifine' && (
+                {currentTypeInfo.usesLoader && filters.source !== 'optifine' && filters.source !== 'curseforge-hytale' && (
                   <PillToggle options={LOADERS} active={filters.loader} onToggle={setLoader} primaryCount={LOADER_PRIMARY_COUNT} />
                 )}
                 {filters.contentType === 'shader' && (
@@ -1212,19 +1157,30 @@ export default function Page() {
                 disabled
                 className="w-full h-11 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 opacity-40 cursor-not-allowed"
               >
-                {queue.entries.filter(e => e.status === 'downloading').length === 1
-                  ? <><Spinner size={13} /> {t.footer.downloading} {queue.zipProgress}%</>
-                  : <><Spinner size={13} /> {t.footer.creatingArchive.replace('{format}', archiveFormat === 'tar.gz' ? '.tar.gz' : 'ZIP')} {queue.zipProgress}%</>
-                }
+                <Spinner size={13} /> {t.desktopInstall.installing} {queue.zipProgress}%
               </button>
-            ) : renderedReadyCount > 1 ? (
-              <div className="flex w-full h-11 rounded-lg overflow-hidden border border-brand">
+            ) : (
+              <button
+                onClick={handleInstallToMinecraft}
+                disabled={hasHydrated ? renderedReadyCount === 0 : undefined}
+                className="w-full h-11 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover hover:border-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <CubeIcon className="w-[13px] h-[13px]" />
+                {t.desktopInstall.installReady.replace('{n}', String(renderedReadyCount))}
+              </button>
+            )}
+
+            {!queue.isDownloading && renderedReadyCount > 0 && (
+              <div className="flex w-full h-8 rounded-lg overflow-hidden border border-line-subtle mt-2.5">
                 <button
                   onClick={handleDownload}
-                  className="flex-1 bg-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover active:scale-[0.98]"
+                  disabled={hasHydrated ? (archiveFormat === 'mrpack' && !canUseMrpack) : undefined}
+                  className="flex-1 bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
-                  {t.footer.downloadFiles.replace('{n}', String(renderedReadyCount))}
+                  <ArrowDownTrayIcon className="w-[11px] h-[11px]" />
+                  {renderedReadyCount > 1
+                    ? t.footer.downloadFiles.replace('{n}', String(renderedReadyCount))
+                    : t.footer.downloadFile}
                 </button>
                 <button
                   onClick={() => setArchiveFormat(f => {
@@ -1233,20 +1189,11 @@ export default function Page() {
                     return 'zip';
                   })}
                   title={t.footer.toggleFormat}
-                  className="px-3 bg-brand text-brand-dark text-[10px] font-mono font-semibold border-l border-black/20 hover:bg-brand-hover transition-colors"
+                  className="px-3 bg-bg-surface text-ink-secondary text-[10px] font-mono font-semibold border-l border-line-subtle hover:text-white hover:bg-bg-hover transition-colors"
                 >
                   .{archiveFormat}
                 </button>
               </div>
-            ) : (
-              <button
-                onClick={handleDownload}
-                disabled={hasHydrated ? (renderedReadyCount === 0 || (archiveFormat === 'mrpack' && !canUseMrpack)) : undefined}
-                className="w-full h-11 rounded-lg bg-brand border border-brand text-brand-dark text-sm font-semibold flex items-center justify-center gap-2 transition-all hover:bg-brand-hover hover:border-brand-hover active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                <ArrowDownTrayIcon className="w-[13px] h-[13px]" />
-                {t.footer.downloadFile}
-              </button>
             )}
 
             {/* Secondary queue actions */}
@@ -1291,53 +1238,9 @@ export default function Page() {
               </button>
             </div>
 
-            {canUseMinecraftShare && (
-              <button
-                onClick={handleMinecraftShare}
-                disabled={hasHydrated ? (isRestoring || mcCodeLoading || queueEntryCount === 0) : undefined}
-                className="w-full h-8 rounded-lg bg-bg-surface text-ink-primary text-[11px] font-medium flex items-center justify-center gap-1.5 mt-2 transition-all hover:text-white hover:bg-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                title={t.minecraft.shareTitle}
-              >
-                {mcCodeLoading
-                  ? <><Spinner size={11} /> {t.minecraft.generating}</>
-                  : <><CubeIcon className="w-[11px] h-[11px]" /> {t.minecraft.share}</>
-                }
-              </button>
-            )}
-
-            {canUseMinecraftShare && mcCode && (
-              <div className="mt-2.5 mb-2.5 flex flex-col gap-1.5">
-                <div className="flex items-center gap-2 rounded-lg bg-bg-surface px-3 py-2">
-                  <span className="text-[10px] text-ink-tertiary shrink-0">{t.minecraft.prompt}</span>
-                  <code className="flex-1 text-[11px] font-mono text-brand truncate">
-                    {t.minecraft.command.replace('{code}', mcCode)}
-                  </code>
-                  <button
-                    onClick={() => handleMcCodeCopy(mcCode)}
-                    className="shrink-0 text-[10px] text-ink-secondary hover:text-white transition-colors"
-                  >
-                    {mcCodeCopied ? t.minecraft.copied : <ClipboardIcon className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
-                <div className="flex items-center justify-center gap-4">
-                  <a
-                    href={`/pack/${mcCode}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-ink-tertiary hover:text-brand transition-colors"
-                  >
-                    {t.minecraft.preview} ↗
-                  </a>
-                  <span className="text-line-strong">·</span>
-                  <a
-                    href="/install"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] text-ink-tertiary hover:text-brand transition-colors"
-                  >
-                    {t.minecraft.getMod} ↗
-                  </a>
-                </div>
+            {installFeedback && (
+              <div className="mt-2.5 mb-2 text-[10px] text-brand text-center break-words">
+                {installFeedback}
               </div>
             )}
 

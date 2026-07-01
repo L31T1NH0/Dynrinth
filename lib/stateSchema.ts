@@ -35,7 +35,7 @@ export type ModListState = ModListStateV2;
 export const CURRENT_FORMAT_VERSION = 2;
 
 const CONTENT_TYPE_COMPATIBILITY: Record<ContentType, Source[]> = {
-  mod:            ['modrinth', 'curseforge', 'optifine'],
+  mod:            ['modrinth', 'curseforge', 'curseforge-hytale', 'optifine'],
   plugin:         ['modrinth', 'curseforge'],
   datapack:       ['modrinth', 'curseforge'],
   resourcepack:   ['modrinth', 'curseforge', 'pvprp'],
@@ -141,7 +141,7 @@ export function migrateWithDetails(
     if (typeof obj.version !== 'string') return { state: null, error: 'v1 requires "version" as string' };
     if (typeof obj.loader  !== 'string') return { state: null, error: 'v1 requires "loader" as string' };
     if (typeof obj.source  !== 'string') return { state: null, error: 'v1 requires "source" as string' };
-    if (!(obj.source === 'modrinth' || obj.source === 'curseforge' || obj.source === 'curseforge-bedrock' || obj.source === 'pvprp' || obj.source === 'optifine')) {
+    if (!(obj.source === 'modrinth' || obj.source === 'curseforge' || obj.source === 'curseforge-bedrock' || obj.source === 'curseforge-hytale' || obj.source === 'pvprp' || obj.source === 'optifine')) {
       return { state: null, error: `v1 has unsupported "source": ${String(obj.source)}` };
     }
     if (!Array.isArray(obj.mods)) return { state: null, error: 'v1 requires "mods" as string[]' };
@@ -160,7 +160,7 @@ export function migrateWithDetails(
     const contentType = obj.contentType;
     if (typeof obj.version     !== 'string') return { state: null, error: 'v2 requires "version" as string' };
     if (typeof obj.source      !== 'string') return { state: null, error: 'v2 requires "source" as string' };
-    if (!(obj.source === 'modrinth' || obj.source === 'curseforge' || obj.source === 'curseforge-bedrock' || obj.source === 'pvprp' || obj.source === 'optifine')) {
+    if (!(obj.source === 'modrinth' || obj.source === 'curseforge' || obj.source === 'curseforge-bedrock' || obj.source === 'curseforge-hytale' || obj.source === 'pvprp' || obj.source === 'optifine')) {
       return { state: null, error: `v2 has unsupported "source": ${String(obj.source)}` };
     }
     if (typeof contentType !== 'string') return { state: null, error: 'v2 requires "contentType" as string' };

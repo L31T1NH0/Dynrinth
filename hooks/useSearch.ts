@@ -162,7 +162,7 @@ export function useSearch(filters: Filters, versions: string[]): UseSearchReturn
     try {
       const service = snapshot.source === 'modrinth'
         ? modrinthService
-        : snapshot.source === 'curseforge' || snapshot.source === 'curseforge-bedrock'
+        : snapshot.source === 'curseforge' || snapshot.source === 'curseforge-bedrock' || snapshot.source === 'curseforge-hytale'
           ? curseforgeService
           : scraperService;
       const fetchCtx: SearchFetchContext = { service, signal: ctrl.signal };
