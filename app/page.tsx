@@ -39,6 +39,8 @@ function fmtSize(kb: number): string {
 }
 
 function loaderLabel(f: import('@/lib/modrinth/types').Filters): string {
+  if (f.source === 'curseforge-hytale' || f.source === 'curseforge-bedrock')
+    return '';
   if (f.contentType === 'mod')
     return LOADERS.find(l => l.id === f.loader)?.label ?? f.loader;
   if (f.contentType === 'shader' && f.shaderLoader)
