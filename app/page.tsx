@@ -568,7 +568,7 @@ export default function Page() {
         <div className={`${mobilePanel === 'queue' ? 'hidden' : 'flex'} md:flex flex-1 flex-col overflow-hidden min-w-0`}>
 
           {/* Mobile header: logo + content tabs */}
-          <div className="md:hidden border-b border-line-subtle shrink-0">
+          <div className="relative z-20 md:hidden border-b border-line-subtle shrink-0">
             <div className="flex items-center gap-4 px-4 py-2 overflow-x-auto scrollbar-none">
               <div className="flex items-center shrink-0">
                 <Wordmark />

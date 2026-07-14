@@ -1,5 +1,6 @@
 
 /node_modules
+/cli/target
 tsconfig.tsbuildinfo
 /.next
 /src-tauri/resources/next-server
@@ -11,3 +12,4 @@ dynrinth-design-preview.html
 *.mrpack
 /src-tauri
 scripts/prepare-tauri-next.mjs
+/packs

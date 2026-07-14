@@ -86,6 +86,33 @@ npm run start
 
 Aplicacao local: `http://localhost:3000`
 
+## CLI Experimental
+
+Ha uma CLI Rust em `cli/` para navegar, consultar e baixar conteudo pelo terminal:
+
+```bash
+cd cli
+cargo run -- search --limit 10
+cargo run -- search sodium --source modrinth --content mod
+cargo run -- search --source hytale --content world --limit 10
+cargo run -- versions --source hytale
+cargo run -- resolve 1430352 --source hytale --version 0.5 --json
+cargo run -- download 1430352 --source hytale --version 0.5 --out ./mods
+cargo run -- tui
+```
+
+A TUI abre carregando conteudos sem precisar pesquisar. Atalhos principais:
+
+- `F2`: alterna fonte entre `Modrinth`, `CurseForge`, `Bedrock` e `Hytale`.
+- `Tab`: alterna o tipo de conteudo disponivel na fonte atual.
+- `Enter`: aplica o filtro digitado ou recarrega a listagem.
+- `PageUp` / `PageDown`: navega pelas paginas.
+- `r`: resolve o arquivo do item selecionado.
+- `d`: baixa o item selecionado em `cli/mods`.
+- `q` ou `Esc`: sai.
+
+Para fontes CurseForge, a CLI usa `CURSEFORGE_API_KEY` do ambiente ou do `.env.local` na raiz do repo.
+
 ## Fluxos Principais
 
 ### Buscar E Baixar
@@ -181,7 +208,7 @@ Arquivos centrais:
 ## Observacoes De Desenvolvimento
 
 - `npm run build` foi validado neste repositorio.
-- O script `npm run lint` presente em `package.json` ainda precisa ser ajustado para o fluxo atual do `Next.js 16`.
+- `npm run lint` valida os diretorios e arquivos TypeScript principais do app.
 
 ## Licenca
 
